@@ -68,7 +68,15 @@ def bootstrapper():
                 print("Specify connection remark.")
                 exit(1)
             else:
-                run(sys.argv[2])
+                try:
+                    opts, args = getopt.getopt(sys.argv[3:], "p:")
+                    if not len(opts) == 0:
+                        run(sys.argv[2], opts[0][1])
+                    else:
+                        run(sys.argv[2], "")
+                except getopt.GetoptError:
+                    print("Specify password for '-p' option.")
+                    exit(3)
         else:
             showhelp()
 
@@ -156,8 +164,8 @@ def removeconn(remark):
 def sense(remark):
     print("Sense %s" % remark)
 
-def run(remark):
-    print("Run %s" % remark)
+def run(remark, password):
+    print("Run %s pass %s" % (remark, password))
 
 if __name__ == "__main__":
     bootstrapper()
