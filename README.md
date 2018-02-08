@@ -1,5 +1,5 @@
 # Gekko
-Makes SFTP upload "easy-peasy lizard squeezy".
+Make SFTP upload "easy-peasy lizard squeezy".
 
 ## Uncompleted project, it's still under development.
 
