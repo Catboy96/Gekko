@@ -2,7 +2,10 @@
 # Errors:
 # 1: Required argument not specified
 # 2: Camouflage path not found
-import os, sys, getopt
+# 3: Invalid arguement
+# 4: Invalid server string
+# 5: No connection info saved in ~/.gekko
+import os, re, sys, getopt
 
 def showhelp():
     strHelp = """
@@ -31,11 +34,41 @@ def bootstrapper():
             else:
                 camouflage(sys.argv[2])
         elif sys.argv[1] == "grip":
-            print('grip')
+            if len(sys.argv) == 2:
+                print("Specify SFTP connection info.")
+                exit(1)
+            else:
+                if len(sys.argv) == 3:
+                    print("No arguement found.")
+                    exit(1)
+                else:
+                    try:
+                        opts, args = getopt.getopt(sys.argv[3:], "s:rl")
+                        opt = opts[0][0]
+                        val = opts[0][1]
+                        if opt == '-s':
+                            grip(sys.argv[2], val)
+                        elif opt == '-l':
+                            listconn(sys.argv[2])
+                        elif opt == '-r':
+                            removeconn(sys.argv[2])
+                    except getopt.GetoptError:
+                        print("Invalid arguement.")
+                        exit(3)
+
         elif sys.argv[1] == "sense":
-            print('sense')
+            if len(sys.argv) == 2:
+                print("Specify connection remark.")
+                exit(1)
+            else:
+                sense(sys.argv[2])
+
         elif sys.argv[1] == "run":
-            print('run')
+            if len(sys.argv) == 2:
+                print("Specify connection remark.")
+                exit(1)
+            else:
+                run(sys.argv[2])
         else:
             showhelp()
 
@@ -50,17 +83,81 @@ def camouflage(path):
         print("%s saved." % ignfile)
     else:
         print(" Not exist.")
-        print("Error: the path you specified does not exist.")
+        print("The path you specified does not exist.")
         exit(2)
 
-def grip(**kwargs):
-    pass
+def grip(server_string, remark):
+    if re.match("[a-z]*@.*:[0-9]+#.*", server_string) == None:
+        print("Invalid server string.")
+    else:
+        user = server_string.split('@')[0]
+        host = server_string.split('@')[1].split(':')[0]
+        port = server_string.split('@')[1].split(':')[1].split('#')[0]
+        path = server_string.split('@')[1].split(':')[1].split('#')[1]
+        print("Host:             %s" % host)
+        print("SSH Port:         %s" % port)
+        print("User:             %s" % user)
+        print("Upload Directory: %s" % path)
+        print("Remark:           %s" % remark)
+        svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
+        with open(svrfile, 'r', encoding='UTF-8') as fr:
+            lines = fr.readlines()
+        with open(svrfile, 'w', encoding='UTF-8') as f:
+            for line in lines:
+                if remark in line:
+                    continue
+                else:
+                    f.write(line)
+            f.write(remark + '=' + server_string + '\n')
+        print("\nConnection Saved.")
 
-def sense():
-    pass
+def listconn(remark):
+    svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
+    if not os.path.exists(svrfile):
+        print("No connection info was saved.")
+        exit(5)
+    with open(svrfile, 'r', encoding='UTF-8') as fr:
+        lines = fr.readlines()
+    if lines == None:
+        print("No connection info was saved.")
+        exit(5)
+    for line in lines:
+        if line.startswith(remark):
+            user = line.split('=')[1].split('@')[0]
+            host = line.split('@')[1].split(':')[0]
+            port = line.split('@')[1].split(':')[1].split('#')[0]
+            path = line.split('@')[1].split(':')[1].split('#')[1]
+            print("Host:             %s" % host)
+            print("SSH Port:         %s" % port)
+            print("User:             %s" % user)
+            print("Upload Directory: %s" % path.strip('\n'))
+            print("Remark:           %s" % remark)
+            exit(0)
+    print("Cannot for connection info with remark '%s'." % remark)
 
-def run():
-    pass
+def removeconn(remark):
+    svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
+    if not os.path.exists(svrfile):
+        print("No connection info was saved.")
+        exit(5)
+    with open(svrfile, 'r', encoding='UTF-8') as fr:
+        lines = fr.readlines()
+    if lines == None:
+        print("No connection info was saved.")
+        exit(5)
+    with open(svrfile, 'w', encoding='UTF-8') as f:
+        for line in lines:
+            if remark in line:
+                continue
+            else:
+                f.write(line)
+    print("Done.")
+
+def sense(remark):
+    print("Sense %s" % remark)
+
+def run(remark):
+    print("Run %s" % remark)
 
 if __name__ == "__main__":
     bootstrapper()
