@@ -5,7 +5,8 @@
 # 3: Invalid arguement
 # 4: Invalid server string
 # 5: No connection info saved in ~/.gekko
-import os, re, sys, getopt
+# 6: Cannot find connection info with specified remark
+import os, re, sys, getopt, pysftp, paramiko
 
 def showhelp():
     strHelp = """
@@ -28,6 +29,12 @@ def bootstrapper():
         showhelp()
     else:
         if sys.argv[1] == "camo":
+            if len(sys.argv) == 2:
+                print("Specify path of a file or directory to ignore.")
+                exit(1)
+            else:
+                camouflage(sys.argv[2])
+        elif sys.argv[1] == "camouflage":
             if len(sys.argv) == 2:
                 print("Specify path of a file or directory to ignore.")
                 exit(1)
@@ -86,7 +93,14 @@ def camouflage(path):
         print(" Exist.")
         root = os.path.dirname(os.path.abspath(path))
         ignfile = os.path.join(root, ".gekkoign")
-        with open(ignfile, 'a', encoding='UTF-8') as f:
+        with open(ignfile, 'r', encoding='UTF-8') as fr:
+            lines = fr.readlines()
+        with open(ignfile, 'w', encoding='UTF-8') as f:
+            for line in lines:
+                if path in line:
+                    continue
+                else:
+                    f.write(line)
             f.write(path + '\n')
         print("%s saved." % ignfile)
     else:
@@ -141,7 +155,8 @@ def listconn(remark):
             print("Upload Directory: %s" % path.strip('\n'))
             print("Remark:           %s" % remark)
             exit(0)
-    print("Cannot for connection info with remark '%s'." % remark)
+    print("Cannot find connection info with remark '%s'." % remark)
+    exit(6)
 
 def removeconn(remark):
     svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
@@ -165,7 +180,52 @@ def sense(remark):
     print("Sense %s" % remark)
 
 def run(remark, password):
-    print("Run %s pass %s" % (remark, password))
+
+    # Get connection info
+    svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
+    if not os.path.exists(svrfile):
+        print("No connection info was saved.")
+        exit(5)
+    with open(svrfile, 'r', encoding='UTF-8') as fr:
+        lines = fr.readlines()
+    if lines == None:
+        print("No connection info was saved.")
+        exit(5)
+    user, host, port, path = '', '', '', ''
+    for line in lines:
+        if line.startswith(remark):
+            user = line.split('=')[1].split('@')[0]
+            host = line.split('@')[1].split(':')[0]
+            port = line.split('@')[1].split(':')[1].split('#')[0]
+            path = line.split('@')[1].split(':')[1].split('#')[1]
+    if user == '' or host == '' or port == '' or path == '':
+        print("Cannot find connection info with remark '%s'." % remark)
+        exit(6)
+    if password == '':
+        password = input("SSH Password of %s: " % host)
+
+    # Get Ignored files
+    root = os.path.abspath(os.curdir)
+    ignfile = os.path.join(root, ".gekkoign")
+    with open(ignfile, 'r', encoding='UTF-8') as fr:
+        lines = fr.read().split('\n')
+        while '' in lines:
+            lines.remove('')
+
+    # Establish connection
+    try:
+        cnopts = pysftp.CnOpts()
+        cnopts.hostkeys = None
+        print("Connecting to %s:%s... " % (host, port), end='')
+        sftp = pysftp.Connection(host, username=user, port=int(port), password=password, cnopts=cnopts)
+        print("Connected.")
+    except pysftp.exceptions.ConnectionException:
+        print("\n\nAn error occured when establishing connection.\nCheck for Internet connection.")
+    except paramiko.ssh_exception.AuthenticationException:
+        print("\n\nAuthentication failed.")
+
+    
+
 
 if __name__ == "__main__":
     bootstrapper()
