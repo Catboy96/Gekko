@@ -91,17 +91,22 @@ def camouflage(path):
     print("Checking for %s..." % path, end='')
     if os.path.exists(path):
         print(" Exist.")
-        root = os.path.dirname(os.path.abspath(path))
+        root = os.path.abspath(os.curdir)
         ignfile = os.path.join(root, ".gekkoign")
-        with open(ignfile, 'r', encoding='UTF-8') as fr:
-            lines = fr.readlines()
-        with open(ignfile, 'w', encoding='UTF-8') as f:
-            for line in lines:
-                if path in line:
-                    continue
-                else:
-                    f.write(line)
-            f.write(path + '\n')
+        print(ignfile)
+        if os.path.exists(ignfile):
+            with open(ignfile, 'r', encoding='UTF-8') as fr:
+                lines = fr.readlines()
+            with open(ignfile, 'w', encoding='UTF-8') as f:
+                for line in lines:
+                    if path in line:
+                        continue
+                    else:
+                        f.write(line)
+                f.write(path + '\n')
+        else:
+            with open(ignfile, 'w', encoding='UTF-8') as f:
+                f.write(path + '\n')
         print("%s saved." % ignfile)
     else:
         print(" Not exist.")
@@ -197,7 +202,7 @@ def run(remark, password):
             user = line.split('=')[1].split('@')[0]
             host = line.split('@')[1].split(':')[0]
             port = line.split('@')[1].split(':')[1].split('#')[0]
-            path = line.split('@')[1].split(':')[1].split('#')[1]
+            path = line.split('@')[1].split(':')[1].split('#')[1].strip('\n')
     if user == '' or host == '' or port == '' or path == '':
         print("Cannot find connection info with remark '%s'." % remark)
         exit(6)
@@ -223,6 +228,49 @@ def run(remark, password):
         print("\n\nAn error occured when establishing connection.\nCheck for Internet connection.")
     except paramiko.ssh_exception.AuthenticationException:
         print("\n\nAuthentication failed.")
+
+    # Make & change directory
+    print("Make directory at %s... " % path, end='')
+    try:
+        sftp.mkdir(path)
+        print("Done.")
+    except OSError:
+        print("Skipped.")
+    print("Change directory to %s... Done." % path)
+    sftp.cd(path)
+
+    # Check & Upload
+    ignored = 0
+    for dirname, subdirs, filenames in os.walk(root):
+        for filename in filenames:
+            rel = os.path.relpath(os.path.join(dirname, filename))
+            for line in lines:
+                if rel.startswith(line):
+                    print("Ignored:   %s" % rel)
+                    ignored = 1
+                    break
+                elif rel == '.gekkoign':
+                    print("Ignored:   .gekkoign")
+                    ignored = 1
+                    break
+                else:
+                    ignored = 0
+            if not ignored == 1:
+                print("Uploading: %s... " % rel, end='')
+                rpath = os.path.join(path, rel)
+                try:
+                    sftp.put(rel, remotepath=rpath, preserve_mtime=True)
+                    print("Done.")
+                except FileNotFoundError:
+                    sftp.makedirs(os.path.dirname(rpath))
+                    sftp.put(rel, remotepath=rpath, preserve_mtime=True)
+                    print("Done.")
+
+    # Close connection
+    print("Disconnecting... ", end='')
+    sftp.close()
+    print("Done.")
+    print("\nOperation successfully completed.")
 
     
 
