@@ -114,13 +114,14 @@ def camouflage(path):
         exit(2)
 
 def grip(server_string, remark):
-    if re.match("[a-z]*@.*:[0-9]+#.*", server_string) == None:
+    matchobj = re.match(r'^([a-z0-9_]{1,32})@(\S+):(\d{1,5})#(\S+)$', server_string)
+    if not matchobj:
         print("Invalid server string.")
     else:
-        user = server_string.split('@')[0]
-        host = server_string.split('@')[1].split(':')[0]
-        port = server_string.split('@')[1].split(':')[1].split('#')[0]
-        path = server_string.split('@')[1].split(':')[1].split('#')[1]
+        user = matchobj.group(1)
+        host = matchobj.group(2)
+        port = matchobj.group(3)
+        path = matchobj.group(4)
         print("Host:             %s" % host)
         print("SSH Port:         %s" % port)
         print("User:             %s" % user)
