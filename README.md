@@ -35,15 +35,19 @@ manager.py                  * manager.py
 ```
 Finally, commit upload.  
 ```
-$ gekko run MyServer
+$ gekko run MyServer -p P@aaw0rd
 Connecting to myserver.com... Connected.
-Checking for changes... Done.
-Uploading app/main/views.py... Done.
-Uploading app/templates/index.html... Done.
-Uploading requirements.txt... Done
-Removing manager.py... Done.
-Uploading manager.py... Done.
-Removing README.md... Done.
+Make directory at /root/gekkotest-remote... Skipped.
+Change directory to /root/gekkotest-remote... Done.
+Ignored:   .gekkoign
+Uploading: app/main/views.py... Done.
+Uploading: app/templates/index.html... Done.
+Ignored:   venv/lib/python3.5/site.py
+......
+Ignored:   venv/pip-selfcheck.json
+Uploading: requirements.txt... Done.
+Uploading: manager.py... Done.
+Disconnecting... Done.
 
-All done.
+Operation successfully completed.
 ```
