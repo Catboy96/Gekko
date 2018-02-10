@@ -7,6 +7,8 @@
 # 5: No connection info saved in ~/.gekko
 # 6: Cannot find connection info with specified remark
 import os, re, sys, getopt, pysftp, paramiko
+import argparse
+import yaml
 
 def showhelp():
     strHelp = """
@@ -25,71 +27,46 @@ Commands listed below:
     print(strHelp)
 
 def bootstrapper():
-    if len(sys.argv) < 2:
-        showhelp()
-    else:
-        if sys.argv[1] == "camo":
-            if len(sys.argv) == 2:
-                print("Specify path of a file or directory to ignore.")
-                exit(1)
-            else:
-                camouflage(sys.argv[2])
-        elif sys.argv[1] == "camouflage":
-            if len(sys.argv) == 2:
-                print("Specify path of a file or directory to ignore.")
-                exit(1)
-            else:
-                camouflage(sys.argv[2])
-        elif sys.argv[1] == "grip":
-            if len(sys.argv) == 2:
-                print("Specify SFTP connection info.")
-                exit(1)
-            else:
-                if len(sys.argv) == 3:
-                    print("No arguement found.")
-                    exit(1)
-                else:
-                    try:
-                        opts, args = getopt.getopt(sys.argv[3:], "s:rl")
-                        opt = opts[0][0]
-                        val = opts[0][1]
-                        if opt == '-s':
-                            grip(sys.argv[2], val)
-                        elif opt == '-l':
-                            listconn(sys.argv[2])
-                        elif opt == '-r':
-                            removeconn(sys.argv[2])
-                    except getopt.GetoptError:
-                        print("Invalid arguement.")
-                        exit(3)
 
-        elif sys.argv[1] == "sense":
-            if len(sys.argv) == 2:
-                print("Specify connection remark.")
-                exit(1)
-            else:
-                sense(sys.argv[2])
 
-        elif sys.argv[1] == "run":
-            if len(sys.argv) == 2:
-                print("Specify connection remark.")
-                exit(1)
-            else:
-                try:
-                    opts, args = getopt.getopt(sys.argv[3:], "p:")
-                    if not len(opts) == 0:
-                        run(sys.argv[2], opts[0][1])
-                    else:
-                        run(sys.argv[2], "")
-                except getopt.GetoptError:
-                    print("Specify password for '-p' option.")
-                    exit(3)
-        else:
-            showhelp()
+    parser = argparse.ArgumentParser(description='Gekko - Makes SFTP upload "easy-peasy lizard squeezy"')
+    subparsers = parser.add_subparsers()
 
-def camouflage(path):
-    print("Checking for %s..." % path, end='')
-    if os.path.exists(path):
+    parser_camo = subparsers.add_parser(
+        'camouflage', aliases=['camo'], help='Define a file or a directory which will be ignored'
+                     ' when uploading. This will generate \'.gekkoign\' file.')
+    parser_camo.add_argument('path', help = 'the path of a file or directory to ignore')
+    parser_camo.set_defaults(func=camouflage)
+
+    parser_make = subparsers.add_parser(
+        'make', aliases=['mk'], help='Create a host which files will be uploaded to. You can also save the host or remove it')
+
+    parser_make.add_argument('connection', help='Specify the connection using user@hostname:path')
+    parser_make.add_argument('-p', dest='PORT', type = int, default=22, help='ssh port')
+    parser_make.add_argument('-s', dest='REMARK', help='The remark of connection to be created.')
+    parser_make.set_defaults(func=grip)
+
+    parser_list = subparsers.add_parser(
+        'list', aliases=['ls'], help='Show all the connections.')
+    parser_list.set_defaults(func=list)
+
+    parser_remove = subparsers.add_parser(
+        'remove', aliases=['rm'], help='Remove a connecion.')
+    parser_remove.add_argument('REMARK', help='Specify the connection using remark')
+    parser_remove.set_defaults(func=removeconn)
+
+    parser_run = subparsers.add_parser(
+        'upload', aliases=['ul'], help='Start the upload sequence.')
+    parser_run.add_argument('REMARK', help='Specify the connection using remark')
+    parser_run.add_argument('-p', dest='PASSWORD', default='', type=str, help='password')
+    parser_run.set_defaults(func=upload)
+
+    args = parser.parse_args()
+    args.func(args)
+
+def camouflage(args):
+    print("Checking for %s..." % args.path, end='')
+    if os.path.exists(args.path):
         print(" Exist.")
         root = os.path.abspath(os.curdir)
         ignfile = os.path.join(root, ".gekkoign")
@@ -99,116 +76,120 @@ def camouflage(path):
                 lines = fr.readlines()
             with open(ignfile, 'w', encoding='UTF-8') as f:
                 for line in lines:
-                    if path in line:
+                    if args.path in line:
                         continue
                     else:
                         f.write(line)
-                f.write(path + '\n')
+                f.write(args.path + '\n')
         else:
             with open(ignfile, 'w', encoding='UTF-8') as f:
-                f.write(path + '\n')
+                f.write(args.path + '\n')
         print("%s saved." % ignfile)
     else:
         print(" Not exist.")
         print("The path you specified does not exist.")
         exit(2)
 
-def grip(server_string, remark):
-    matchobj = re.match(r'^([a-z0-9_]{1,32})@(\S+):(\d{1,5})#(\S+)$', server_string)
+def grip(args):
+    if args.REMARK:
+        process_remark(args)
+
+def process_remark(args):
+    matchobj = re.match(r'^([a-z0-9_]{1,32})@(\S+):(\S+)$', args.connection)
     if not matchobj:
         print("Invalid server string.")
     else:
         user = matchobj.group(1)
         host = matchobj.group(2)
-        port = matchobj.group(3)
-        path = matchobj.group(4)
+        path = matchobj.group(3)
         print("Host:             %s" % host)
-        print("SSH Port:         %s" % port)
+        print("SSH Port:         %s" % args.PORT)
         print("User:             %s" % user)
         print("Upload Directory: %s" % path)
-        print("Remark:           %s" % remark)
+        print("Remark:           %s" % args.REMARK)
         svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
-        with open(svrfile, 'r', encoding='UTF-8') as fr:
-            lines = fr.readlines()
+
+        data = None
+        if os.path.exists(svrfile):
+            with open(svrfile, 'r', encoding='UTF-8') as f:
+                data = yaml.load(f)
+        if data is None:
+            data = []
+        item = [i for i in data if i['remark'] == args.REMARK]
+        if not item:
+            data.append({'remark': args.REMARK,
+                         'host': host,
+                         'user': user,
+                         'path': path,
+                         'port': args.PORT,})
+        else:
+            item[0]['host'] = host
+            item[0]['user'] = user
+            item[0]['path'] = path
+            item[0]['port'] = args.PORT
         with open(svrfile, 'w', encoding='UTF-8') as f:
-            for line in lines:
-                if remark in line:
-                    continue
-                else:
-                    f.write(line)
-            f.write(remark + '=' + server_string + '\n')
+            f.write(yaml.dump(data))
         print("\nConnection Saved.")
 
-def listconn(remark):
-    svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
-    if not os.path.exists(svrfile):
-        print("No connection info was saved.")
-        exit(5)
-    with open(svrfile, 'r', encoding='UTF-8') as fr:
-        lines = fr.readlines()
-    if lines == None:
-        print("No connection info was saved.")
-        exit(5)
-    for line in lines:
-        if line.startswith(remark):
-            user = line.split('=')[1].split('@')[0]
-            host = line.split('@')[1].split(':')[0]
-            port = line.split('@')[1].split(':')[1].split('#')[0]
-            path = line.split('@')[1].split(':')[1].split('#')[1]
-            print("Host:             %s" % host)
-            print("SSH Port:         %s" % port)
-            print("User:             %s" % user)
-            print("Upload Directory: %s" % path.strip('\n'))
-            print("Remark:           %s" % remark)
-            exit(0)
-    print("Cannot find connection info with remark '%s'." % remark)
-    exit(6)
 
-def removeconn(remark):
+def list(args):
     svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
     if not os.path.exists(svrfile):
-        print("No connection info was saved.")
+        print("No connection has saved.")
         exit(5)
-    with open(svrfile, 'r', encoding='UTF-8') as fr:
-        lines = fr.readlines()
-    if lines == None:
-        print("No connection info was saved.")
+    with open(svrfile, 'r', encoding='UTF-8') as f:
+        datas = yaml.load(f)
+    if not datas:
+        print('No connection has saved.')
         exit(5)
+    for data in datas:
+        print('Remark: %s, connection: %s@%s:%s' % (data['remark'], data['user'], data['host'], data['path']), end='')
+        if data['port'] != 22:
+            print('port:%d' % data['port'], end='')
+        print('')
+    exit(0)
+
+def removeconn(args):
+    svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
+    if not os.path.exists(svrfile):
+        print("No connection has saved.")
+        exit(5)
+    with open(svrfile, 'r', encoding='UTF-8') as f:
+        datas = yaml.load(f)
+    if not datas:
+        print('No connection has saved.')
+        exit(5)
+    for i in datas:
+        if i['remark'] == args.REMARK:
+            datas.remove(i)
     with open(svrfile, 'w', encoding='UTF-8') as f:
-        for line in lines:
-            if remark in line:
-                continue
-            else:
-                f.write(line)
+        f.write(yaml.dump(datas))
     print("Done.")
 
 def sense(remark):
     print("Sense %s" % remark)
 
-def run(remark, password):
+def upload(args):
 
-    # Get connection info
     svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
     if not os.path.exists(svrfile):
-        print("No connection info was saved.")
+        print("No connection has saved.")
         exit(5)
-    with open(svrfile, 'r', encoding='UTF-8') as fr:
-        lines = fr.readlines()
-    if lines == None:
-        print("No connection info was saved.")
+    with open(svrfile, 'r', encoding='UTF-8') as f:
+        datas = yaml.load(f)
+    if not datas:
+        print('No connection has saved.')
         exit(5)
-    user, host, port, path = '', '', '', ''
-    for line in lines:
-        if line.startswith(remark):
-            user = line.split('=')[1].split('@')[0]
-            host = line.split('@')[1].split(':')[0]
-            port = line.split('@')[1].split(':')[1].split('#')[0]
-            path = line.split('@')[1].split(':')[1].split('#')[1].strip('\n')
-    if user == '' or host == '' or port == '' or path == '':
-        print("Cannot find connection info with remark '%s'." % remark)
-        exit(6)
-    if password == '':
-        password = input("SSH Password of %s: " % host)
+    password = args.PASSWORD
+    for i in datas:
+        if i['remark'] == args.REMARK:
+            if password == '':
+                password = input("SSH Password of %s: " % i['host'])
+            upload_files(i['user'], i['host'], i['port'], password, i['path'])
+            break
+
+
+def upload_files(user, host, port, password, path):
 
     # Get Ignored files
     root = os.path.abspath(os.curdir)
