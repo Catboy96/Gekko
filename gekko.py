@@ -10,41 +10,31 @@ import os, re, sys, getopt, pysftp, paramiko
 import argparse
 import yaml
 
-def showhelp():
-    strHelp = """
-Gekko - Makes SFTP upload "easy-peasy lizard squeezy".
-
-Usage: gekko <command> [<args>]
-
-Commands listed below:
-   camo     Define a file or a directory which will be ignored
-            when uploading. This will generate '.gekkoign' file
-   grip     Define a host which files will be uploaded to. You
-            can also save the host or remove it
-   sense    Show the changes which will be taken
-   run      Start the upload sequence
-"""
-    print(strHelp)
 
 def bootstrapper():
-
-
+    #create a parser
     parser = argparse.ArgumentParser(description='Gekko - Makes SFTP upload "easy-peasy lizard squeezy"')
+    # create sub-command parsers
     subparsers = parser.add_subparsers()
-
+    #add camouflage parser with alias of camo
     parser_camo = subparsers.add_parser(
         'camouflage', aliases=['camo'], help='Define a file or a directory which will be ignored'
                      ' when uploading. This will generate \'.gekkoign\' file.')
+    #accept path param
     parser_camo.add_argument('path', help = 'the path of a file or directory to ignore')
+    #once camouflage command matched, goto camouflage routine
     parser_camo.set_defaults(func=camouflage)
 
+    #make sub-command
     parser_make = subparsers.add_parser(
         'make', aliases=['mk'], help='Create a host which files will be uploaded to. You can also save the host or remove it')
-
+    #accept connection param
     parser_make.add_argument('connection', help='Specify the connection using user@hostname:path')
+    #accept port param by the default value of 22, since default value of ssh port is 22
     parser_make.add_argument('-p', dest='PORT', type = int, default=22, help='ssh port')
+    # accept remark param
     parser_make.add_argument('-s', dest='REMARK', help='The remark of connection to be created.')
-    parser_make.set_defaults(func=grip)
+    parser_make.set_defaults(func=make)
 
     parser_list = subparsers.add_parser(
         'list', aliases=['ls'], help='Show all the connections.')
@@ -61,7 +51,9 @@ def bootstrapper():
     parser_run.add_argument('-p', dest='PASSWORD', default='', type=str, help='password')
     parser_run.set_defaults(func=upload)
 
+    #parse
     args = parser.parse_args()
+    #call sub-command routine
     args.func(args)
 
 def camouflage(args):
@@ -90,11 +82,7 @@ def camouflage(args):
         print("The path you specified does not exist.")
         exit(2)
 
-def grip(args):
-    if args.REMARK:
-        process_remark(args)
-
-def process_remark(args):
+def make(args):
     matchobj = re.match(r'^([a-z0-9_]{1,32})@(\S+):(\S+)$', args.connection)
     if not matchobj:
         print("Invalid server string.")
@@ -109,7 +97,7 @@ def process_remark(args):
         print("Remark:           %s" % args.REMARK)
         svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
 
-        data = None
+        #load connections
         if os.path.exists(svrfile):
             with open(svrfile, 'r', encoding='UTF-8') as f:
                 data = yaml.load(f)
@@ -146,7 +134,7 @@ def list(args):
         print('Remark: %s, connection: %s@%s:%s' % (data['remark'], data['user'], data['host'], data['path']), end='')
         if data['port'] != 22:
             print('port:%d' % data['port'], end='')
-        print('')
+        print('')  #newline
     exit(0)
 
 def removeconn(args):
@@ -170,7 +158,6 @@ def sense(remark):
     print("Sense %s" % remark)
 
 def upload(args):
-
     svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
     if not os.path.exists(svrfile):
         print("No connection has saved.")
