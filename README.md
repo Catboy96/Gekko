@@ -6,14 +6,7 @@ Make SFTP uploading "easy-peasy lizard squeezy".
 ## Installation
 ```
 $ sudo apt-get update && sudo apt-get install -y python3 python3-pip
-$ sudo pip3 isntall pysftp 
-# download pyyaml
-$ curl -sL https://github.com/yaml/pyyaml/archive/3.12.tar.gz > pyyaml-3.12.tar.gz
-$ tar vxf pyyaml-3.12.tar.gz
-$ cd pyyaml-3.12
-#install pyyaml. refer to http://pyyaml.org/wiki/PyYAMLDocumentation
-$ sudo python3 setup.py install
-
+$ sudo pip3 isntall pysftp PyYAML
 #TODO install gekko
 
 ```
