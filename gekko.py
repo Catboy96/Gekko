@@ -96,7 +96,8 @@ def make(args):
         print("User:             %s" % user)
         print("Upload Directory: %s" % path)
         print("Remark:           %s" % args.REMARK)
-        print("Private key:       %s" % args.KEY)
+        if args.KEY != '':
+            print("Private key:      %s" % args.KEY)
         svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
 
         #load connections
@@ -136,7 +137,7 @@ def list(args):
         print('No connection has saved.')
         exit(5)
     for data in datas:
-        print('Remark: %s; connection: %s@%s:%s; ' % (data['remark'], data['user'], data['host'], data['path']), end='')
+        print('Remark:%s; connection:%s@%s:%s; ' % (data['remark'], data['user'], data['host'], data['path']), end='')
         if data['port'] != 22:
             print('port:%d; ' % data['port'], end='')
         if data['key'] != '':
