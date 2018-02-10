@@ -30,10 +30,11 @@ def bootstrapper():
         'make', aliases=['mk'], help='Create a host which files will be uploaded to. You can also save the host or remove it')
     #accept connection param
     parser_make.add_argument('connection', help='Specify the connection using user@hostname:path')
-    #accept port param by the default value of 22, since default value of ssh port is 22
-    parser_make.add_argument('-p', dest='PORT', type = int, default=22, help='ssh port')
     # accept remark param
     parser_make.add_argument('-s', dest='REMARK', help='The remark of connection to be created.')
+    #accept port param by the default value of 22, since default value of ssh port is 22
+    parser_make.add_argument('-p', dest='PORT', type=int, default=22, help='ssh port')
+    parser_make.add_argument('-k', dest='KEY', type=str, default='', help='Use a private key instead of a password.')
     parser_make.set_defaults(func=make)
 
     parser_list = subparsers.add_parser(
@@ -95,6 +96,7 @@ def make(args):
         print("User:             %s" % user)
         print("Upload Directory: %s" % path)
         print("Remark:           %s" % args.REMARK)
+        print("Private key:       %s" % args.KEY)
         svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
 
         #load connections
@@ -109,12 +111,15 @@ def make(args):
                          'host': host,
                          'user': user,
                          'path': path,
-                         'port': args.PORT,})
+                         'port': args.PORT,
+                         'key': args.KEY,
+                         })
         else:
             item[0]['host'] = host
             item[0]['user'] = user
             item[0]['path'] = path
             item[0]['port'] = args.PORT
+            item[0]['key'] = args.KEY
         with open(svrfile, 'w', encoding='UTF-8') as f:
             f.write(yaml.dump(data))
         print("\nConnection Saved.")
@@ -131,9 +136,11 @@ def list(args):
         print('No connection has saved.')
         exit(5)
     for data in datas:
-        print('Remark: %s, connection: %s@%s:%s' % (data['remark'], data['user'], data['host'], data['path']), end='')
+        print('Remark: %s; connection: %s@%s:%s; ' % (data['remark'], data['user'], data['host'], data['path']), end='')
         if data['port'] != 22:
-            print('port:%d' % data['port'], end='')
+            print('port:%d; ' % data['port'], end='')
+        if data['key'] != '':
+            print('private_key:%s;' % data['key'], end='')
         print('')  #newline
     exit(0)
 
@@ -170,13 +177,13 @@ def upload(args):
     password = args.PASSWORD
     for i in datas:
         if i['remark'] == args.REMARK:
-            if password == '':
+            if i['key'] == '' and password == '':
                 password = input("SSH Password of %s: " % i['host'])
-            upload_files(i['user'], i['host'], i['port'], password, i['path'])
+            upload_files(i['user'], i['host'], i['port'], password, i['path'], i['key'])
             break
 
 
-def upload_files(user, host, port, password, path):
+def upload_files(user, host, port, password, path, key):
 
     # Get Ignored files
     root = os.path.abspath(os.curdir)
@@ -191,7 +198,10 @@ def upload_files(user, host, port, password, path):
         cnopts = pysftp.CnOpts()
         cnopts.hostkeys = None
         print("Connecting to %s:%s... " % (host, port), end='')
-        sftp = pysftp.Connection(host, username=user, port=int(port), password=password, cnopts=cnopts)
+        if key != '':
+            sftp = pysftp.Connection(host, username=user, port=int(port), private_key=key, cnopts=cnopts)
+        else:
+            sftp = pysftp.Connection(host, username=user, port=int(port), password=password, cnopts=cnopts)
         print("Connected.")
     except pysftp.exceptions.ConnectionException:
         print("\n\nAn error occured when establishing connection.\nCheck for Internet connection.")
