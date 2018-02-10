@@ -134,12 +134,12 @@ def make(args):
 def list(args):
     svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
     if not os.path.exists(svrfile):
-        print("No connection has saved.")
+        print("Gasping Gekkos! No connection saved yet.")
         exit(5)
     with open(svrfile, 'r', encoding='UTF-8') as f:
         datas = yaml.load(f)
     if not datas:
-        print('No connection saved yet.')
+        print('Gasping Gekkos! No connection saved yet.')
         exit(5)
     for data in datas:
         print('Remark:%s; connection:%s@%s:%s; ' % (data['remark'], data['user'], data['host'], data['path']), end='')
