@@ -139,7 +139,7 @@ def list(args):
     with open(svrfile, 'r', encoding='UTF-8') as f:
         datas = yaml.load(f)
     if not datas:
-        print('No connection has saved.')
+        print('No connection saved yet.')
         exit(5)
     for data in datas:
         print('Remark:%s; connection:%s@%s:%s; ' % (data['remark'], data['user'], data['host'], data['path']), end='')
