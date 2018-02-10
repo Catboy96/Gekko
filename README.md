@@ -7,8 +7,8 @@ Make SFTP uploading "easy-peasy lizard squeezy".
 ```
 $ sudo apt-get update && sudo apt-get install -y python3 python3-pip
 $ sudo pip3 isntall pysftp PyYAML
-#TODO install gekko
-
+$ sudo wget --no-check-certificate https://raw.githubusercontent.com/CYRO4S/Gekko/master/gekko.py -O /usr/bin/gekko  
+$ sudo chmod a+x /usr/bin/gekko
 ```
 ## Quick Start
 Add files or directories you don't want to upload.  
@@ -19,7 +19,7 @@ Checking for venv/... Exist.
 ```  
 Set up SFTP connection.
 ```
-$ gekko make root@myserver.com:/root/gekkotest-remote -s MyServer
+$ gekko grip root@myserver.com:/root/gekkotest-remote -s MyServer
 Host:             myserver.com
 SSH Port:         22
 User:             root
@@ -30,7 +30,7 @@ Connection Saved.
 ```
 Set up SFTP connection using a rsa key and specify the ssh port.
 ```
-$ gekko make root@myserver.com:/root/gekkotest-remote -s MyServer -p 1080 -k ~/.ssh/id_rsa
+$ gekko grip root@myserver.com:/root/gekkotest-remote -s MyServer -p 1080 -k ~/.ssh/id_rsa
 Host:             myserver.com
 SSH Port:         1080
 User:             root
@@ -51,27 +51,9 @@ requirements.txt            + requirements.txt
 manager.py                  * manager.py
                             - README.md
 ```
-Finally, commit upload.  
-```
-$ gekko upload MyServer -p P@aaw0rd
-Connecting to myserver.com... Connected.
-Make directory at /root/gekkotest-remote... Skipped.
-Change directory to /root/gekkotest-remote... Done.
-Ignored:   .gekkoign
-Uploading: app/main/views.py... Done.
-Uploading: app/templates/index.html... Done.
-Ignored:   venv/lib/python3.5/site.py
-......
-Ignored:   venv/pip-selfcheck.json
-Uploading: requirements.txt... Done.
-Uploading: manager.py... Done.
-Disconnecting... Done.
-
-Operation successfully completed.
-```
 Upload using password.
 ```
-$ gekko upload MyServer -p P@aaw0rd
+$ gekko run MyServer -p P@ssw0rd
 Connecting to myserver.com... Connected.
 Make directory at /root/gekkotest-remote... Skipped.
 Change directory to /root/gekkotest-remote... Done.
@@ -91,7 +73,7 @@ Operation successfully completed.
 ## Commands
 
 * camouflage (camo)   : Define a file or a directory which will be ignored when uploading. This will generate '.gekkoign' file.
-* make (mk)           : Create a host which files will be uploaded to. You can also save the host or remove it
+* grip (gp)           : Create a host which files will be uploaded to. You can also save the host or remove it.
 * list (ls)           : Show all the connections.
 * remove (rm)         : Remove a connecion.
-* upload (ul)         : Start the upload sequence.
+* run (rn)            : Start the upload sequence.
