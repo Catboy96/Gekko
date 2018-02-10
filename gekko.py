@@ -6,7 +6,7 @@
 # 4: Invalid server string
 # 5: No connection info saved in ~/.gekko
 # 6: Cannot find connection info with specified remark
-import os, re, sys, getopt, pysftp, paramiko
+import os, re, sys, pysftp, paramiko
 import argparse
 import yaml
 
@@ -27,7 +27,7 @@ def bootstrapper():
 
     #make sub-command
     parser_make = subparsers.add_parser(
-        'make', aliases=['mk'], help='Create a host which files will be uploaded to. You can also save the host or remove it')
+        'grip', aliases=['gp'], help='Create a host which files will be uploaded to. You can also save the host or remove it')
     #accept connection param
     parser_make.add_argument('connection', help='Specify the connection using user@hostname:path')
     # accept remark param
@@ -47,15 +47,20 @@ def bootstrapper():
     parser_remove.set_defaults(func=removeconn)
 
     parser_run = subparsers.add_parser(
-        'upload', aliases=['ul'], help='Start the upload sequence.')
+        'run', aliases=['rn'], help='Start the upload sequence.')
     parser_run.add_argument('REMARK', help='Specify the connection using remark')
     parser_run.add_argument('-p', dest='PASSWORD', default='', type=str, help='password')
     parser_run.set_defaults(func=upload)
 
     #parse
     args = parser.parse_args()
-    #call sub-command routine
-    args.func(args)
+    try:
+        #call sub-command routine
+        args.func(args)
+    except AttributeError:
+        parser.print_help()
+        exit(0)
+
 
 def camouflage(args):
     print("Checking for %s..." % args.path, end='')
@@ -101,10 +106,11 @@ def make(args):
         svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
 
         #load connections
+        data = []
         if os.path.exists(svrfile):
             with open(svrfile, 'r', encoding='UTF-8') as f:
                 data = yaml.load(f)
-        if data is None:
+        if not data:
             data = []
         item = [i for i in data if i['remark'] == args.REMARK]
         if not item:
@@ -124,7 +130,6 @@ def make(args):
         with open(svrfile, 'w', encoding='UTF-8') as f:
             f.write(yaml.dump(data))
         print("\nConnection Saved.")
-
 
 def list(args):
     svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
@@ -182,7 +187,6 @@ def upload(args):
                 password = input("SSH Password of %s: " % i['host'])
             upload_files(i['user'], i['host'], i['port'], password, i['path'], i['key'])
             break
-
 
 def upload_files(user, host, port, password, path, key):
 
@@ -251,9 +255,6 @@ def upload_files(user, host, port, password, path, key):
     sftp.close()
     print("Done.")
     print("\nOperation successfully completed.")
-
-    
-
 
 if __name__ == "__main__":
     bootstrapper()
