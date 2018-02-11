@@ -7,7 +7,7 @@ Installation
 ::
 
   $ sudo apt-get update && sudo apt-get install -y python3 python3-pip
-  $ sudo pip3 isntall thegekko
+  $ sudo pip3 install thegekko
 
 -------------
 Quick Start
