@@ -1,14 +1,12 @@
 # Gekko
-Make SFTP uploading "easy-peasy lizard squeezy".
-
-## Uncompleted project, it's still under development.
+Make SFTP uploading "easy-peasy lizard squeezy".  
+  
+[![PyPI version](https://badge.fury.io/py/theGekko.svg)](https://badge.fury.io/py/theGekko)
 
 ## Installation
 ```
 $ sudo apt-get update && sudo apt-get install -y python3 python3-pip
-$ sudo pip3 isntall pysftp PyYAML
-$ sudo wget --no-check-certificate https://raw.githubusercontent.com/CYRO4S/Gekko/master/gekko.py -O /usr/bin/gekko  
-$ sudo chmod a+x /usr/bin/gekko
+$ sudo pip3 isntall thegekko
 ```
 ## Quick Start
 Add files or directories you don't want to upload.  
