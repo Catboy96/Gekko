@@ -60,9 +60,11 @@ Change directory to /root/gekkotest-remote... Done.
 Ignored:   .gekkoign
 Uploading: app/main/views.py... Done.
 Uploading: app/templates/index.html... Done.
+Skipped:   app/templates/old.html
 Ignored:   venv/lib/python3.5/site.py
 ......
 Ignored:   venv/pip-selfcheck.json
+Skipped:   oldone.txt
 Uploading: requirements.txt... Done.
 Uploading: manager.py... Done.
 Disconnecting... Done.
