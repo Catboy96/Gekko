@@ -255,6 +255,3 @@ def upload_files(user, host, port, password, path, key):
     sftp.close()
     print("Done.")
     print("\nOperation successfully completed.")
-
-if __name__ == "__main__":
-    bootstrapper()
