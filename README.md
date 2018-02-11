@@ -1,7 +1,8 @@
 # Gekko
 Make SFTP uploading "easy-peasy lizard squeezy".  
   
-[![PyPI version](https://badge.fury.io/py/theGekko.svg)](https://badge.fury.io/py/theGekko)
+[![PyPI version](https://badge.fury.io/py/theGekko.svg)](https://badge.fury.io/py/theGekko)  
+[中文版説明](https://ralf.ren/1759)
 
 ## Installation
 ```
