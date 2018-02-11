@@ -1,17 +1,17 @@
 Gekko
-=====
+==========
 
------
+--------------
 Installation
------
+--------------
 ::
 
   $ sudo apt-get update && sudo apt-get install -y python3 python3-pip
   $ sudo pip3 isntall thegekko
 
------
+-------------
 Quick Start
------
+-------------
 Add files or directories you don't want to upload.
 ::
 
@@ -28,9 +28,9 @@ Set up SFTP connection.
   User:             root
   Upload Directory: /root/gekkotest-remote
   Remark:           MyServer
-  
+
   Connection Saved.
-  
+
 Set up SFTP connection using a rsa key and specify the ssh port.
 ::
 
@@ -41,7 +41,7 @@ Set up SFTP connection using a rsa key and specify the ssh port.
   Upload Directory: /root/gekkotest-remote
   Remark:           MyServer
   Private key:      /home/ice/.ssh/id_rsa
-  
+
 Check for changes.
 ::
 
@@ -49,12 +49,12 @@ Check for changes.
   Connecting to myserver.com... Connected.
   Checking for /root/gekkotest-remote... Exist.
   Changes will be taken:
-  
+
   * /root/gekkotest-remote/app.py
   + /root/gekkotest-remote/assets/logo.png
-  
+
   Disconnecting... Done.
-  
+
 Upload using password.
 ::
 
@@ -73,12 +73,12 @@ Upload using password.
   Uploading: requirements.txt... Done.
   Uploading: manager.py... Done.
   Disconnecting... Done.
-  
+
   Operation successfully completed.
-  
------
+
+----------
 Commands
------
+----------
 * camouflage (camo) : Define a file or a directory which will be ignored when uploading. This will generate '.gekkoign' file.
 * grip (gp) : Create a host which files will be uploaded to. You can also save the host or remove it.
 * list (ls) : Show all the connections.
