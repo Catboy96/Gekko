@@ -7,7 +7,7 @@ Make SFTP uploading "easy-peasy lizard squeezy".
 ## Installation
 ```
 $ sudo apt-get update && sudo apt-get install -y python3 python3-pip
-$ sudo pip3 isntall thegekko
+$ sudo pip3 install thegekko
 ```
 ## Quick Start
 Add files or directories you don't want to upload.  
