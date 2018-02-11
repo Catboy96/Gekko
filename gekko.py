@@ -61,7 +61,6 @@ def bootstrapper():
         parser.print_help()
         exit(0)
 
-
 def camouflage(args):
     print("Checking for %s..." % args.path, end='')
     if os.path.exists(args.path):
@@ -240,15 +239,37 @@ def upload_files(user, host, port, password, path, key):
                 else:
                     ignored = 0
             if not ignored == 1:
-                print("Uploading: %s... " % rel, end='')
+
+                # 'rel'   will be local file relative path.
+                # 'rpath' will be remote file absolute path.
                 rpath = os.path.join(path, rel)
+                # Try getting remote file info.
                 try:
-                    sftp.put(rel, remotepath=rpath, preserve_mtime=True)
-                    print("Done.")
-                except FileNotFoundError:
-                    sftp.makedirs(os.path.dirname(rpath))
-                    sftp.put(rel, remotepath=rpath, preserve_mtime=True)
-                    print("Done.")
+                    fr = sftp.lstat(rpath)
+                    fl = os.stat(rel)
+                    # If remote file's modification time & size equals to the
+                    # local file, then skip it.
+                    if fr.st_size == fl.st_size and int(fr.st_mtime) == int(fl.st_mtime):
+                        print("Skipped:   %s" % rel)
+                    else:
+                        # Upload it, cause it changed!
+                        print("Uploading: %s... " % rel, end='')
+                        try:
+                            sftp.put(rel, remotepath=rpath, preserve_mtime=True)
+                            print("Done.")
+                        except:
+                            print("FAILED.")
+                except:
+                    # Remote file doesn't exist. Upload directly.
+                    print("Uploading: %s... " % rel, end='')
+                    try:
+                        sftp.put(rel, remotepath=rpath, preserve_mtime=True)
+                        print("Done.")
+                    except FileNotFoundError:
+                        # Build remote file's path if nessesary.
+                        sftp.makedirs(os.path.dirname(rpath))
+                        sftp.put(rel, remotepath=rpath, preserve_mtime=True)
+                        print("Done.")
 
     # Close connection
     print("Disconnecting... ", end='')
