@@ -40,16 +40,15 @@ Private key:      /home/ice/.ssh/id_rsa
 ```
 Check for changes.  
 ```
-$ gekko sense MyServer
+$ gekko sense MyServer -p P@ssw0rd
 Connecting to myserver.com... Connected.
-Checking for changes... Done.
-Local                       Remote
------                       -----
-app/main/views.py           + app/main/views.py
-app/templates/index.html    + app/templates/index.html
-requirements.txt            + requirements.txt
-manager.py                  * manager.py
-                            - README.md
+Checking for /root/gekkotest-remote... Exist.
+Changes will be taken:
+
+* /root/gekkotest-remote/app.py
++ /root/gekkotest-remote/assets/logo.png
+
+Disconnecting... Done.
 ```
 Upload using password.
 ```
@@ -78,4 +77,5 @@ Operation successfully completed.
 * grip (gp)           : Create a host which files will be uploaded to. You can also save the host or remove it.
 * list (ls)           : Show all the connections.
 * remove (rm)         : Remove a connecion.
+* sense (ss)          : Check for the changes which will taken in uploading.
 * run (rn)            : Start the upload sequence.
