@@ -202,10 +202,15 @@ def do_sense(user, host, port, password, path, key):
     # Get Ignored files
     root = os.path.abspath(os.curdir)
     ignfile = os.path.join(root, ".gekkoign")
-    with open(ignfile, 'r', encoding='UTF-8') as fr:
-        lines = fr.read().split('\n')
-        while '' in lines:
-            lines.remove('')
+    lines = []
+    try:
+        with open(ignfile, 'r', encoding='UTF-8') as fr:
+            lines = fr.read().split('\n')
+            while '' in lines:
+                lines.remove('')
+    except FileNotFoundError:
+        lines = []
+
 
     # Establish connection
     try:
@@ -236,15 +241,18 @@ def do_sense(user, host, port, password, path, key):
         for dirname, subdirs, filenames in os.walk(root):
             for filename in filenames:
                 rel = os.path.relpath(os.path.join(dirname, filename))
-                for line in lines:
-                    if rel.startswith(line):
-                        ignored = 1
-                        break
-                    elif rel == '.gekkoign':
-                        ignored = 1
-                        break
-                    else:
-                        ignored = 0
+                if not lines:
+                    ignored = 0
+                else:
+                    for line in lines:
+                        if rel.startswith(line):
+                            ignored = 1
+                            break
+                        elif rel == '.gekkoign':
+                            ignored = 1
+                            break
+                        else:
+                            ignored = 0
                 if not ignored == 1:
                     # 'rel'   will be local file relative path.
                     # 'rpath' will be remote file absolute path.
@@ -263,15 +271,18 @@ def do_sense(user, host, port, password, path, key):
     for dirname, subdirs, filenames in os.walk(root):
         for filename in filenames:
             rel = os.path.relpath(os.path.join(dirname, filename))
-            for line in lines:
-                if rel.startswith(line):
-                    ignored = 1
-                    break
-                elif rel == '.gekkoign':
-                    ignored = 1
-                    break
-                else:
-                    ignored = 0
+            if not lines:
+                ignored = 0
+            else:
+                for line in lines:
+                    if rel.startswith(line):
+                        ignored = 1
+                        break
+                    elif rel == '.gekkoign':
+                        ignored = 1
+                        break
+                    else:
+                        ignored = 0
             if not ignored == 1:
                 # 'rel'   will be local file relative path.
                 # 'rpath' will be remote file absolute path.
@@ -319,10 +330,14 @@ def upload_files(user, host, port, password, path, key):
     # Get Ignored files
     root = os.path.abspath(os.curdir)
     ignfile = os.path.join(root, ".gekkoign")
-    with open(ignfile, 'r', encoding='UTF-8') as fr:
-        lines = fr.read().split('\n')
-        while '' in lines:
-            lines.remove('')
+    lines = []
+    try:
+        with open(ignfile, 'r', encoding='UTF-8') as fr:
+            lines = fr.read().split('\n')
+            while '' in lines:
+                lines.remove('')
+    except FileNotFoundError:
+        lines = []
 
     # Establish connection
     try:
@@ -356,17 +371,20 @@ def upload_files(user, host, port, password, path, key):
     for dirname, subdirs, filenames in os.walk(root):
         for filename in filenames:
             rel = os.path.relpath(os.path.join(dirname, filename))
-            for line in lines:
-                if rel.startswith(line):
-                    print("Ignored:   %s" % rel)
-                    ignored = 1
-                    break
-                elif rel == '.gekkoign':
-                    print("Ignored:   .gekkoign")
-                    ignored = 1
-                    break
-                else:
-                    ignored = 0
+            if not lines:
+                ignored = 0
+            else:
+                for line in lines:
+                    if rel.startswith(line):
+                        print("Ignored:   %s" % rel)
+                        ignored = 1
+                        break
+                    elif rel == '.gekkoign':
+                        print("Ignored:   .gekkoign")
+                        ignored = 1
+                        break
+                    else:
+                        ignored = 0
             if not ignored == 1:
 
                 # 'rel'   will be local file relative path.
