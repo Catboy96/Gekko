@@ -1,5 +1,5 @@
 # Gekko
-Make SFTP uploading "easy-peasy lizard squeezy".  
+Make SFTP syncing "easy-peasy lizard squeezy".  
   
 [![PyPI version](https://badge.fury.io/py/theGekko.svg)](https://badge.fury.io/py/theGekko)  
 [中文版説明](https://ralf.ren/1759)
@@ -43,13 +43,15 @@ $ gekko sense MyServer -p P@ssw0rd
 Connecting to myserver.com... Connected.
 Checking for /root/gekkotest-remote... Exist.
 Changes will be taken:
-
 * /root/gekkotest-remote/app.py
+> /root/gekkotest-remote/db.py
 + /root/gekkotest-remote/assets/logo.png
-
 Disconnecting... Done.
+
+0.102 MB need to upload.
+0.003 MB need to download.
 ```
-Upload using password.
+Sync using password. Add ```-r``` if you don't want to change your local file.  
 ```
 $ gekko run MyServer -p P@ssw0rd
 Connecting to myserver.com... Connected.
@@ -65,9 +67,8 @@ Ignored:   venv/pip-selfcheck.json
 Skipped:   oldone.txt
 Uploading: requirements.txt... Done.
 Uploading: manager.py... Done.
+Reserved:  db.py
 Disconnecting... Done.
-
-Operation successfully completed.
 ```
 
 ## Commands
