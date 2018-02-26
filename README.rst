@@ -7,12 +7,12 @@ Installation
 ::
 
   $ sudo apt-get update && sudo apt-get install -y python3 python3-pip
-  $ sudo pip3 install thegekko
+  $ sudo pip3 isntall thegekko
 
 -------------
 Quick Start
 -------------
-Add files or directories you don't want to upload.
+Add files or directories you don't want to sync.
 ::
 
   $ gekko camo venv/
@@ -49,16 +49,18 @@ Check for changes.
   Connecting to myserver.com... Connected.
   Checking for /root/gekkotest-remote... Exist.
   Changes will be taken:
-
   * /root/gekkotest-remote/app.py
+  > /root/gekkotest-remote/db.py
   + /root/gekkotest-remote/assets/logo.png
-
   Disconnecting... Done.
 
-Upload using password.
+  0.102 MB need to upload.
+  0.003 MB need to download.
+
+Sync using password. Add "-r" if you don't want to change your local file.
 ::
 
-  $ gekko run MyServer -p P@ssw0rd
+  $ gekko run MyServer -p P@ssw0rd -r
   Connecting to myserver.com... Connected.
   Make directory at /root/gekkotest-remote... Skipped.
   Change directory to /root/gekkotest-remote... Done.
@@ -72,9 +74,8 @@ Upload using password.
   Skipped:   oldone.txt
   Uploading: requirements.txt... Done.
   Uploading: manager.py... Done.
+  Reserved:  db.py
   Disconnecting... Done.
-
-  Operation successfully completed.
 
 ----------
 Commands
