@@ -53,7 +53,7 @@ Disconnecting... Done.
 ```
 Sync using password. Add ```-r``` if you don't want to change your local file.  
 ```
-$ gekko run MyServer -p P@ssw0rd
+$ gekko run MyServer -p P@ssw0rd -r
 Connecting to myserver.com... Connected.
 Make directory at /root/gekkotest-remote... Skipped.
 Change directory to /root/gekkotest-remote... Done.
