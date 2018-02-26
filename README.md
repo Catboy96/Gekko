@@ -10,7 +10,7 @@ $ sudo apt-get update && sudo apt-get install -y python3 python3-pip
 $ sudo pip3 install thegekko
 ```
 ## Quick Start
-Add files or directories you don't want to upload.  
+Add files or directories you don't want to sync.  
 ```
 $ gekko camo venv/
 Checking for venv/... Exist.
