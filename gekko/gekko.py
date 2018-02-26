@@ -13,14 +13,14 @@ import yaml
 
 def bootstrapper():
     # Create a parser
-    parser = argparse.ArgumentParser(description='Gekko - Makes SFTP upload "easy-peasy lizard squeezy"')
+    parser = argparse.ArgumentParser(description='Gekko - Makes SFTP synchronization "easy-peasy lizard squeezy"')
     # Create sub-command parsers
     subparsers = parser.add_subparsers()
 
     # GEKKO CAMOUFLAGE ---
     parser_camo = subparsers.add_parser(
         'camouflage', aliases=['camo'], help='Define a file or a directory which will be ignored'
-                     ' when uploading. This will generate \'.gekkoign\' file.')
+                     ' when syncing. This will generate \'.gekkoign\' file.')
     # Accept path param
     parser_camo.add_argument('path', help = 'the path of a file or directory to ignore')
     #once camouflage command matched, goto camouflage routine
@@ -28,16 +28,16 @@ def bootstrapper():
 
     # Make sub-commands
     # GEKKO GRIP ---
-    parser_make = subparsers.add_parser(
+    parser_grip = subparsers.add_parser(
         'grip', aliases=['gp'], help='Create a host which files will be uploaded to. You can also save the host or remove it')
     # Accept connection param
-    parser_make.add_argument('connection', help='Specify the connection using user@hostname:path')
+    parser_grip.add_argument('connection', help='Specify the connection using user@hostname:path')
     # Accept remark param
-    parser_make.add_argument('-s', dest='REMARK', help='The remark of connection to be created.')
+    parser_grip.add_argument('-s', dest='REMARK', help='The remark of connection to be created.')
     # Accept port param by the default value of 22, since default value of ssh port is 22
-    parser_make.add_argument('-p', dest='PORT', type=int, default=22, help='ssh port')
-    parser_make.add_argument('-k', dest='KEY', type=str, default='', help='Use a private key instead of a password.')
-    parser_make.set_defaults(func=make)
+    parser_grip.add_argument('-p', dest='PORT', type=int, default=22, help='ssh port')
+    parser_grip.add_argument('-k', dest='KEY', type=str, default='', help='Use a private key instead of a password.')
+    parser_grip.set_defaults(func=make)
 
     # GEKKO LIST
     parser_list = subparsers.add_parser(
@@ -52,17 +52,19 @@ def bootstrapper():
 
     # GEKKO RUN
     parser_run = subparsers.add_parser(
-        'run', aliases=['rn'], help='Start the upload sequence.')
+        'run', aliases=['rn'], help='Start the synchronization sequence.')
     parser_run.add_argument('REMARK', help='Specify the connection using remark')
-    parser_run.add_argument('-p', dest='PASSWORD', default='', type=str, help='password')
-    parser_run.set_defaults(func=upload)
+    parser_run.add_argument('-p', dest='PASSWORD', default='', type=str, help='Password')
+    parser_run.add_argument(
+        '-r', action='store_true', dest='RESERVE', default=False, help='Reserve local file from changing.')
+    parser_run.set_defaults(func=run)
 
     # GEKKO SENSE
-    parser_run = subparsers.add_parser(
-        'sense', aliases=['ss'], help='Check for the changes which will taken in uploading.')
-    parser_run.add_argument('REMARK', help='Specify the connection using remark')
-    parser_run.add_argument('-p', dest='PASSWORD', default='', type=str, help='password')
-    parser_run.set_defaults(func=sense)
+    parser_sense = subparsers.add_parser(
+        'sense', aliases=['ss'], help='Check for the changes which will taken in syncing.')
+    parser_sense.add_argument('REMARK', help='Specify the connection using remark')
+    parser_sense.add_argument('-p', dest='PASSWORD', default='', type=str, help='Password')
+    parser_sense.set_defaults(func=sense)
 
     # Parse
     args = parser.parse_args()
@@ -146,12 +148,12 @@ def make(args):
 def list(args):
     svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
     if not os.path.exists(svrfile):
-        print("Gasping Gekkos! No connection saved yet.")
+        print("Gasping Geckos! No connection saved yet.")
         exit(5)
     with open(svrfile, 'r', encoding='UTF-8') as f:
         datas = yaml.load(f)
     if not datas:
-        print('Gasping Gekkos! No connection saved yet.')
+        print('Gasping Geckos! No connection saved yet.')
         exit(5)
     for data in datas:
         print('Remark:%s; connection:%s@%s:%s; ' % (data['remark'], data['user'], data['host'], data['path']), end='')
@@ -165,12 +167,12 @@ def list(args):
 def removeconn(args):
     svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
     if not os.path.exists(svrfile):
-        print("No connection has saved.")
+        print("Gasping Geckos! No connection saved yet.")
         exit(5)
     with open(svrfile, 'r', encoding='UTF-8') as f:
         datas = yaml.load(f)
     if not datas:
-        print('No connection has saved.')
+        print('Gasping Geckos! No connection saved yet.')
         exit(5)
     for i in datas:
         if i['remark'] == args.REMARK:
@@ -182,12 +184,12 @@ def removeconn(args):
 def sense(args):
     svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
     if not os.path.exists(svrfile):
-        print("No connection has saved.")
+        print("Gasping Geckos! No connection saved yet.")
         exit(5)
     with open(svrfile, 'r', encoding='UTF-8') as f:
         datas = yaml.load(f)
     if not datas:
-        print('No connection has saved.')
+        print('Gasping Geckos! No connection saved yet.')
         exit(5)
     password = args.PASSWORD
     for i in datas:
@@ -235,8 +237,9 @@ def do_sense(user, host, port, password, path, key):
         sftp.cd(path)
     else:
         # Well, just print every file not ignored.
+        total_size = 0
         print("Not exist.")
-        print("Changes will be taken:\n")
+        print("Changes will be taken:")
         ignored = 0
         for dirname, subdirs, filenames in os.walk(root):
             for filename in filenames:
@@ -256,17 +259,21 @@ def do_sense(user, host, port, password, path, key):
                 if not ignored == 1:
                     # 'rel'   will be local file relative path.
                     # 'rpath' will be remote file absolute path.
+                    total_size += os.path.getsize(rel)
                     rpath = os.path.join(path, rel)
                     print("+ %s" % rpath)
 
         # Close connection
-        print("\nDisconnecting... ", end='')
+        print("Disconnecting... ", end='')
         sftp.close()
-        print("Done.")
+        print("Done.\n")
+        print('%.3f MB need to upload.' % (total_size/1024/1024))
         exit(0)
 
     # Check which files are changed.
-    print("Changes will be taken:\n")
+    print("Changes will be taken:")
+    upload_size = 0
+    download_size = 0
     ignored = 0
     for dirname, subdirs, filenames in os.walk(root):
         for filename in filenames:
@@ -296,36 +303,46 @@ def do_sense(user, host, port, password, path, key):
                     if fr.st_size == fl.st_size and int(fr.st_mtime) == int(fl.st_mtime):
                         pass
                     else:
-                        # The file is changed.
-                        print("* %s" % rpath)
+                        if int(fr.st_mtime) > int(fl.st_mtime):
+                            # Remote file is newer, calculate download size
+                            download_size += fr.st_size
+                            print("> %s" % rpath)
+                        else:
+                            # Local file is newer, replace the remote one.
+                            upload_size += os.path.getsize(rel)
+                            print("* %s" % rpath)
                 except:
                     # Remote file doesn't exist. Needs to upload.
+                    upload_size += os.path.getsize(rel)
                     print("+ %s" % rpath)
 
     # Close connection
-    print("\nDisconnecting... ", end='')
+    print("Disconnecting... ", end='')
     sftp.close()
-    print("Done.")
+    print("Done.\n")
+    print('%.3f MB need to upload.' % (upload_size/1024/1024))
+    print('%.3f MB need to download.' % (download_size/1024/1024))
 
-def upload(args):
+def run(args):
     svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
     if not os.path.exists(svrfile):
-        print("No connection has saved.")
+        print("Gasping Geckos! No connection saved yet.")
         exit(5)
     with open(svrfile, 'r', encoding='UTF-8') as f:
         datas = yaml.load(f)
     if not datas:
-        print('No connection has saved.')
+        print('Gasping Geckos! No connection saved yet.')
         exit(5)
     password = args.PASSWORD
+    reserve = args.RESERVE
     for i in datas:
         if i['remark'] == args.REMARK:
             if i['key'] == '' and password == '':
                 password = input("SSH Password of %s: " % i['host'])
-            upload_files(i['user'], i['host'], i['port'], password, i['path'], i['key'])
+            do_run(i['user'], i['host'], i['port'], password, i['path'], i['key'], reserve)
             break
 
-def upload_files(user, host, port, password, path, key):
+def do_run(user, host, port, password, path, key, reserve):
 
     # Get Ignored files
     root = os.path.abspath(os.curdir)
@@ -386,12 +403,12 @@ def upload_files(user, host, port, password, path, key):
                     else:
                         ignored = 0
             if not ignored == 1:
-
                 # 'rel'   will be local file relative path.
                 # 'rpath' will be remote file absolute path.
                 rpath = os.path.join(path, rel)
                 # Try getting remote file info.
                 try:
+                    # Remote file exists
                     fr = sftp.lstat(rpath)
                     fl = os.stat(rel)
                     # If remote file's modification time & size equals to the
@@ -399,15 +416,27 @@ def upload_files(user, host, port, password, path, key):
                     if fr.st_size == fl.st_size and int(fr.st_mtime) == int(fl.st_mtime):
                         print("Skipped:   %s" % rel)
                     else:
-                        # Upload it, cause it changed!
-                        print("Uploading: %s... " % rel, end='')
-                        try:
-                            sftp.put(rel, remotepath=rpath, preserve_mtime=True)
-                            print("Done.")
-                        except:
-                            print("FAILED.")
+                        if int(fr.st_mtime) > int(fl.st_mtime):
+                            # Remote file is newer, let user make a selection
+                            if reserve == False:
+                                try:
+                                    print("Download:  %s... " % rel, end='')
+                                    sftp.get(rpath, localpath=rel, preserve_mtime=True)
+                                    print("Done.")
+                                except:
+                                    print('FAILED.')
+                            else:
+                                print("Reserved:  %s" % rel)
+                        else:
+                            # Local file is newer, replace the remote one.
+                            print("Uploading: %s... " % rel, end='')
+                            try:
+                                sftp.put(rel, remotepath=rpath, preserve_mtime=True)
+                                print("Done.")
+                            except:
+                                print('FAILED.')
                 except:
-                    # Remote file doesn't exist. Upload directly.
+                    # Remote file does not exist, upload directly.
                     print("Uploading: %s... " % rel, end='')
                     try:
                         sftp.put(rel, remotepath=rpath, preserve_mtime=True)
