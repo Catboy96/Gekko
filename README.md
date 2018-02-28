@@ -10,9 +10,9 @@ $ sudo apt-get update && sudo apt-get install -y python3 python3-pip
 $ sudo pip3 install thegekko
 ```
 ## Enable tab-complete  
+Add the content of ```tab-complete/gekko_tc``` to ~/.bashrc. Then,  
 ```
-$ sudo sh -c "$(wget --no-check-certificate https://raw.githubusercontent.com/CYRO4S/Gekko/master/tab-complete/enable.sh -O -)"
-$ source ~/.bashrc
+source ~/.bashrc
 ```
 ## Quick Start
 Add files or directories you don't want to sync.  
