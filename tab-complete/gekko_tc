@@ -15,9 +15,10 @@ _gekko() {
         sense|ss)
             COMPREPLY=( $(compgen -W "${nodes}" -- ${cur}) )
             return;;
+        gekko)
+            COMPREPLY=( $(compgen -W "camo camouflage grip list remove run sense" -- ${cur}) )
+            return;;
     esac
-
-    COMPREPLY=( $(compgen -W "camo camouflage grip list remove run sense" -- ${cur}) )
 }
 
-complete -F _gekko gekko
+complete -o default -F _gekko gekko
