@@ -3,7 +3,7 @@ _gekko() {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    nodes=$(/usr/bin/env python3 /etc/gekko/gekko_tc.py)
+    nodes=$(cat ~/.gekko | grep -o "remark: [a-z]*[0-9]*" | awk '{print $2}')
 
     case $prev in
         remove|rm)
