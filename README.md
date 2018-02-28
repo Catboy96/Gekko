@@ -9,6 +9,11 @@ Make SFTP syncing "easy-peasy lizard squeezy".
 $ sudo apt-get update && sudo apt-get install -y python3 python3-pip
 $ sudo pip3 install thegekko
 ```
+## Enable tab-complete  
+```
+$ sudo sh -c "$(wget --no-check-certificate https://raw.githubusercontent.com/CYRO4S/Gekko/master/tab-complete/enable.sh -O -)"
+$ source ~/.bashrc
+```
 ## Quick Start
 Add files or directories you don't want to sync.  
 ```
