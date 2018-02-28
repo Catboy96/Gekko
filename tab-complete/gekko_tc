@@ -1,0 +1,23 @@
+_gekko() {
+    local cur prev nodes
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    nodes=$(python /etc/gekko/gekko_tc.py)
+
+    case $prev in
+        remove|rm)
+            COMPREPLY=( $(compgen -W "${nodes}" -- ${cur}) )
+            return;;
+        run|rn)
+            COMPREPLY=( $(compgen -W "${nodes}" -- ${cur}) )
+            return;;
+        sense|ss)
+            COMPREPLY=( $(compgen -W "${nodes}" -- ${cur}) )
+            return;;
+    esac
+
+    COMPREPLY=( $(compgen -W "camo camouflage grip list remove run sense" -- ${cur}) )
+}
+
+complete -F _gekko gekko
