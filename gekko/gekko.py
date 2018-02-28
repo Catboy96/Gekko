@@ -6,6 +6,8 @@
 # 4: Invalid server string
 # 5: No connection info saved in ~/.gekko
 # 6: Cannot find connection info with specified remark
+# 7: Authentication failed
+# 8: Network error
 import os, re, sys, pysftp, paramiko
 import argparse
 import yaml
@@ -226,8 +228,10 @@ def do_sense(user, host, port, password, path, key):
         print("Connected.")
     except pysftp.exceptions.ConnectionException:
         print("\n\nAn error occured when establishing connection.\nCheck for Internet connection.")
+        exit(8)
     except paramiko.ssh_exception.AuthenticationException:
         print("\n\nAuthentication failed.")
+        exit(7)
 
     # Check for uploading directory
     print("Checking for %s... " % path, end='')
@@ -368,8 +372,10 @@ def do_run(user, host, port, password, path, key, reserve):
         print("Connected.")
     except pysftp.exceptions.ConnectionException:
         print("\n\nAn error occured when establishing connection.\nCheck for Internet connection.")
+        exit(8)
     except paramiko.ssh_exception.AuthenticationException:
         print("\n\nAuthentication failed.")
+        exit(7)
 
     # Check for uploading directory
     print("Checking for %s... " % path, end='')
