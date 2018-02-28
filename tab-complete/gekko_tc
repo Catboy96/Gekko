@@ -3,7 +3,7 @@ _gekko() {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    nodes=$(python /etc/gekko/gekko_tc.py)
+    nodes=$(/usr/bin/env python3 /etc/gekko/gekko_tc.py)
 
     case $prev in
         remove|rm)
