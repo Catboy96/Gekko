@@ -8,12 +8,15 @@
 # 6: Cannot find connection info with specified remark
 # 7: Authentication failed
 # 8: Network error
+# 9: SFTP error
 import os, re, sys, pysftp, paramiko
 import warnings
 import argparse
 import yaml
 
-__VERSION__ = "0.3.2"
+# Changes
+__VERSION__ = "0.3.3"
+warnings.filterwarnings('error')
 
 def bootstrapper():
     # Create a parser
@@ -60,7 +63,8 @@ def bootstrapper():
     parser_run.add_argument('REMARK', help='Specify the connection using remark')
     parser_run.add_argument('-p', dest='PASSWORD', default='', type=str, help='Password')
     parser_run.add_argument(
-        '-r', action='store_true', dest='RESERVE', default=False, help='Reserve local file from changing.')
+        '-f', action='store_true', dest='FULLSYNC', default=False,
+        help='Remove all remote files and sync with local.')
     parser_run.set_defaults(func=run)
 
     # GEKKO SENSE
@@ -196,7 +200,7 @@ def removeconn(args):
             datas.remove(i)
     with open(svrfile, 'w', encoding='UTF-8') as f:
         f.write(yaml.dump(datas))
-    print("Done.")
+    print('"%s" removed.' % args.REMARK)
 
 def sense(args):
     svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
@@ -214,7 +218,9 @@ def sense(args):
             if i['key'] == '' and password == '':
                 password = input("SSH Password of %s: " % i['host'])
             do_sense(i['user'], i['host'], i['port'], password, i['path'], i['key'])
-            break
+            exit(0)
+    print('Wriggling reptiles! "%s" seems not exist.' % args.REMARK)
+    exit(6)
 
 def do_sense(user, host, port, password, path, key):
 
@@ -230,7 +236,6 @@ def do_sense(user, host, port, password, path, key):
     except FileNotFoundError:
         lines = []
 
-
     # Establish connection
     try:
         cnopts = pysftp.CnOpts()
@@ -241,7 +246,7 @@ def do_sense(user, host, port, password, path, key):
         else:
             sftp = pysftp.Connection(host, username=user, port=int(port), password=password, cnopts=cnopts)
         print("Connected.")
-    except warning as e:
+    except Warning:
         pass
     except pysftp.exceptions.ConnectionException:
         print("\n\nAn error occured when establishing connection.\nCheck for Internet connection.")
@@ -294,7 +299,6 @@ def do_sense(user, host, port, password, path, key):
     # Check which files are changed.
     print("Changes will be taken:")
     upload_size = 0
-    download_size = 0
     ignored = 0
     for dirname, subdirs, filenames in os.walk(root):
         for filename in filenames:
@@ -324,14 +328,9 @@ def do_sense(user, host, port, password, path, key):
                     if fr.st_size == fl.st_size and int(fr.st_mtime) == int(fl.st_mtime):
                         pass
                     else:
-                        if int(fr.st_mtime) > int(fl.st_mtime):
-                            # Remote file is newer, calculate download size
-                            download_size += fr.st_size
-                            print("> %s" % rpath)
-                        else:
-                            # Local file is newer, replace the remote one.
-                            upload_size += os.path.getsize(rel)
-                            print("* %s" % rpath)
+                        # Upload.
+                        upload_size += os.path.getsize(rel)
+                        print("* %s" % rpath)
                 except:
                     # Remote file doesn't exist. Needs to upload.
                     upload_size += os.path.getsize(rel)
@@ -342,7 +341,6 @@ def do_sense(user, host, port, password, path, key):
     sftp.close()
     print("Done.\n")
     print('%.3f MB need to upload.' % (upload_size/1024/1024))
-    print('%.3f MB need to download.' % (download_size/1024/1024))
 
 def run(args):
     svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
@@ -355,15 +353,17 @@ def run(args):
         print('Gasping Geckos! No connection saved yet.')
         exit(5)
     password = args.PASSWORD
-    reserve = args.RESERVE
+    fullsync = args.FULLSYNC
     for i in datas:
         if i['remark'] == args.REMARK:
             if i['key'] == '' and password == '':
                 password = input("SSH Password of %s: " % i['host'])
-            do_run(i['user'], i['host'], i['port'], password, i['path'], i['key'], reserve)
-            break
+            do_run(i['user'], i['host'], i['port'], password, i['path'], i['key'], fullsync)
+            exit(0)
+    print('Wriggling reptiles! "%s" seems not exist.' % args.REMARK)
+    exit(6)
 
-def do_run(user, host, port, password, path, key, reserve):
+def do_run(user, host, port, password, path, key, fullsync):
 
     # Get Ignored files
     root = os.path.abspath(os.curdir)
@@ -381,13 +381,14 @@ def do_run(user, host, port, password, path, key, reserve):
     try:
         cnopts = pysftp.CnOpts()
         cnopts.hostkeys = None
+        cnopts.compression = True
         print("Connecting to %s:%s... " % (host, port), end='')
         if key != '':
             sftp = pysftp.Connection(host, username=user, port=int(port), private_key=key, cnopts=cnopts)
         else:
             sftp = pysftp.Connection(host, username=user, port=int(port), password=password, cnopts=cnopts)
         print("Connected.")
-    except warning as e:
+    except Warning:
         pass
     except pysftp.exceptions.ConnectionException:
         print("\n\nAn error occured when establishing connection.\nCheck for Internet connection.")
@@ -400,8 +401,20 @@ def do_run(user, host, port, password, path, key, reserve):
     print("Checking for %s... " % path, end='')
     if sftp.exists(path):
         print("Exist.")
-        print("Change directory to %s... Done." % path)
-        sftp.cd(path)
+        if fullsync == True:
+            try:
+                print("Removing %s... " % path, end='')
+                sftp.execute("rm -rf %s" % path)
+                print("Done.")
+                print("Make directory at %s... " % path, end='')
+                sftp.makedirs(path)
+                print("Done.")
+            except:
+                print("\nSFTP Error.")
+                exit(9)
+        else:
+            print("Change directory to %s... Done." % path)
+            sftp.cd(path)
     else:
         print("Not exist.")
         print("Make directory at %s... " % path, end='')
@@ -441,25 +454,13 @@ def do_run(user, host, port, password, path, key, reserve):
                     if fr.st_size == fl.st_size and int(fr.st_mtime) == int(fl.st_mtime):
                         print("Skipped:   %s" % rel)
                     else:
-                        if int(fr.st_mtime) > int(fl.st_mtime):
-                            # Remote file is newer, let user make a selection
-                            if reserve == False:
-                                try:
-                                    print("Download:  %s... " % rel, end='')
-                                    sftp.get(rpath, localpath=rel, preserve_mtime=True)
-                                    print("Done.")
-                                except:
-                                    print('FAILED.')
-                            else:
-                                print("Reserved:  %s" % rel)
-                        else:
-                            # Local file is newer, replace the remote one.
-                            print("Uploading: %s... " % rel, end='')
-                            try:
-                                sftp.put(rel, remotepath=rpath, preserve_mtime=True)
-                                print("Done.")
-                            except:
-                                print('FAILED.')
+                        # Replace the remote one.
+                        print("Uploading: %s... " % rel, end='')
+                        try:
+                            sftp.put(rel, remotepath=rpath, preserve_mtime=True)
+                            print("Done.")
+                        except:
+                            print('FAILED.')
                 except:
                     # Remote file does not exist, upload directly.
                     print("Uploading: %s... " % rel, end='')
@@ -471,6 +472,7 @@ def do_run(user, host, port, password, path, key, reserve):
                         sftp.makedirs(os.path.dirname(rpath))
                         sftp.put(rel, remotepath=rpath, preserve_mtime=True)
                         print("Done.")
+
 
     # Close connection
     print("Disconnecting... ", end='')
