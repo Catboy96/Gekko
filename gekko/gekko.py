@@ -10,13 +10,11 @@
 # 8: Network error
 # 9: SFTP error
 import os, re, sys, pysftp, paramiko
-import warnings
 import argparse
+import getpass
 import yaml
 
-# Changes
-__VERSION__ = "0.3.3"
-warnings.filterwarnings('error')
+__VERSION__ = "0.3.5"
 
 def bootstrapper():
     # Create a parser
@@ -216,7 +214,7 @@ def sense(args):
     for i in datas:
         if i['remark'] == args.REMARK:
             if i['key'] == '' and password == '':
-                password = input("SSH Password of %s: " % i['host'])
+                password = getpass.getpass("SSH Password of %s: " % i['host'])
             do_sense(i['user'], i['host'], i['port'], password, i['path'], i['key'])
             exit(0)
     print('Wriggling reptiles! "%s" seems not exist.' % args.REMARK)
@@ -246,8 +244,6 @@ def do_sense(user, host, port, password, path, key):
         else:
             sftp = pysftp.Connection(host, username=user, port=int(port), password=password, cnopts=cnopts)
         print("Connected.")
-    except Warning:
-        pass
     except pysftp.exceptions.ConnectionException:
         print("\n\nAn error occured when establishing connection.\nCheck for Internet connection.")
         exit(8)
@@ -357,7 +353,7 @@ def run(args):
     for i in datas:
         if i['remark'] == args.REMARK:
             if i['key'] == '' and password == '':
-                password = input("SSH Password of %s: " % i['host'])
+                password = getpass.getpass("SSH Password of %s: " % i['host'])
             do_run(i['user'], i['host'], i['port'], password, i['path'], i['key'], fullsync)
             exit(0)
     print('Wriggling reptiles! "%s" seems not exist.' % args.REMARK)
@@ -388,8 +384,6 @@ def do_run(user, host, port, password, path, key, fullsync):
         else:
             sftp = pysftp.Connection(host, username=user, port=int(port), password=password, cnopts=cnopts)
         print("Connected.")
-    except Warning:
-        pass
     except pysftp.exceptions.ConnectionException:
         print("\n\nAn error occured when establishing connection.\nCheck for Internet connection.")
         exit(8)
