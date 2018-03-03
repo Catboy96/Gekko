@@ -9,9 +9,11 @@
 # 7: Authentication failed
 # 8: Network error
 import os, re, sys, pysftp, paramiko
+import warnings
 import argparse
 import yaml
 
+__VERSION__ = "0.3.2"
 
 def bootstrapper():
     # Create a parser
@@ -39,7 +41,7 @@ def bootstrapper():
     # Accept port param by the default value of 22, since default value of ssh port is 22
     parser_grip.add_argument('-p', dest='PORT', type=int, default=22, help='ssh port')
     parser_grip.add_argument('-k', dest='KEY', type=str, default='', help='Use a private key instead of a password.')
-    parser_grip.set_defaults(func=make)
+    parser_grip.set_defaults(func=grip)
 
     # GEKKO LIST
     parser_list = subparsers.add_parser(
@@ -68,6 +70,11 @@ def bootstrapper():
     parser_sense.add_argument('-p', dest='PASSWORD', default='', type=str, help='Password')
     parser_sense.set_defaults(func=sense)
 
+    # GEKKO VERSION ---
+    parser_ver = subparsers.add_parser(
+        'version', aliases=['ver'], help='Show the version of Gekko.')
+    parser_ver.set_defaults(func=version)
+
     # Parse
     args = parser.parse_args()
     try:
@@ -77,6 +84,9 @@ def bootstrapper():
         # No arguements specified, show help.
         parser.print_help()
         exit(0)
+
+def version(args):
+    print("Gekko %s" % __VERSION__)
 
 def camouflage(args):
     print("Checking for %s..." % args.path, end='')
@@ -104,7 +114,7 @@ def camouflage(args):
         print("The path you specified does not exist.")
         exit(2)
 
-def make(args):
+def grip(args):
     matchobj = re.match(r'^([a-z0-9_]{1,32})@(\S+):(\S+)$', args.connection)
     if not matchobj:
         print("Invalid server string.")
@@ -157,13 +167,18 @@ def list(args):
     if not datas:
         print('Gasping Geckos! No connection saved yet.')
         exit(5)
+    print('{:<20}'.format('Remarks'), end='')
+    print('Connection')
+    print('{:<20}'.format('-------'), end='')
+    print('-------')
     for data in datas:
-        print('Remark:%s; connection:%s@%s:%s; ' % (data['remark'], data['user'], data['host'], data['path']), end='')
+        print('{:<20}'.format(data['remark']), end='')
+        print('%s@%s:%s ' % (data['user'], data['host'], data['path']), end='')
         if data['port'] != 22:
-            print('port:%d; ' % data['port'], end='')
+            print('-p %d ' % data['port'], end='')
         if data['key'] != '':
-            print('private_key:%s;' % data['key'], end='')
-        print('')  #newline
+            print('-k %s' % data['key'], end='')
+        print('')
     exit(0)
 
 def removeconn(args):
@@ -226,6 +241,8 @@ def do_sense(user, host, port, password, path, key):
         else:
             sftp = pysftp.Connection(host, username=user, port=int(port), password=password, cnopts=cnopts)
         print("Connected.")
+    except warning as e:
+        pass
     except pysftp.exceptions.ConnectionException:
         print("\n\nAn error occured when establishing connection.\nCheck for Internet connection.")
         exit(8)
@@ -370,6 +387,8 @@ def do_run(user, host, port, password, path, key, reserve):
         else:
             sftp = pysftp.Connection(host, username=user, port=int(port), password=password, cnopts=cnopts)
         print("Connected.")
+    except warning as e:
+        pass
     except pysftp.exceptions.ConnectionException:
         print("\n\nAn error occured when establishing connection.\nCheck for Internet connection.")
         exit(8)
