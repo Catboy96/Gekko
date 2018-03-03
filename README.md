@@ -49,16 +49,15 @@ Connecting to myserver.com... Connected.
 Checking for /root/gekkotest-remote... Exist.
 Changes will be taken:
 * /root/gekkotest-remote/app.py
-> /root/gekkotest-remote/db.py
 + /root/gekkotest-remote/assets/logo.png
 Disconnecting... Done.
 
 0.102 MB need to upload.
-0.003 MB need to download.
 ```
-Sync using password. Add ```-r``` if you don't want to change your local file.  
+Sync using password. Add ```-f``` if you want to a full sync.  
+Full sync will erase remote folder and re-upload local files.  
 ```
-$ gekko run MyServer -p P@ssw0rd -r
+$ gekko run MyServer -p P@ssw0rd
 Connecting to myserver.com... Connected.
 Make directory at /root/gekkotest-remote... Skipped.
 Change directory to /root/gekkotest-remote... Done.
