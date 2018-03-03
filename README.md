@@ -84,3 +84,4 @@ Disconnecting... Done.
 * remove (rm)         : Remove a connecion.
 * sense (ss)          : Check for the changes which will taken in uploading.
 * run (rn)            : Start the upload sequence.
+* version (ver)       : Show Gekko version.
