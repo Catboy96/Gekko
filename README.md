@@ -10,7 +10,7 @@ $ sudo apt-get update && sudo apt-get install -y python3 python3-pip
 $ sudo pip3 install thegekko
 ```
 ## Enable tab-complete  
-Add the content of ```tab-complete/gekko_tc``` to ~/.bashrc. Then,  
+Add the content of [tab-complete/gekko_tc](https://github.com/CYRO4S/Gekko/blob/master/tab-complete/gekko_tc) to ~/.bashrc. Then,  
 ```
 source ~/.bashrc
 ```
