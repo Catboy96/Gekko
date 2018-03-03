@@ -7,7 +7,19 @@ Installation
 ::
 
   $ sudo apt-get update && sudo apt-get install -y python3 python3-pip
-  $ sudo pip3 isntall thegekko
+  $ sudo pip3 install thegekko
+
+---------------------
+Enable tab-complete
+---------------------
+Add the content of this_ to ~/.bashrc. Then,
+
+.. _this: https://github.com/CYRO4S/Gekko/blob/master/tab-complete/gekko_tc
+
+::
+
+  $ source ~/.bashrc
+
 
 -------------
 Quick Start
@@ -50,14 +62,13 @@ Check for changes.
   Checking for /root/gekkotest-remote... Exist.
   Changes will be taken:
   * /root/gekkotest-remote/app.py
-  > /root/gekkotest-remote/db.py
   + /root/gekkotest-remote/assets/logo.png
   Disconnecting... Done.
 
   0.102 MB need to upload.
-  0.003 MB need to download.
 
-Sync using password. Add "-r" if you don't want to change your local file.
+Sync using password. Add "-f" if you want to a full sync.
+Full sync will erase remote folder and re-upload local files.
 ::
 
   $ gekko run MyServer -p P@ssw0rd -r
@@ -86,3 +97,4 @@ Commands
 * remove (rm) : Remove a connecion.
 * sense (ss) : Check for the changes which will taken in uploading.
 * run (rn) : Start the upload sequence.
+* version (ver) : Show Gekko version.
