@@ -3,7 +3,7 @@ _gekko() {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    nodes=$(cat ~/.gekko | grep -o "remark: [a-z]*[0-9]*" | awk '{print $2}')
+    nodes=$(if [ -f ~/.gekko ]; then cat ~/.gekko | grep -o "remark: [a-z]*[0-9]*" | awk '{print $2}'; else echo ""; fi)
 
     case $prev in
         remove|rm)
