@@ -14,7 +14,7 @@ import argparse
 import getpass
 import yaml
 
-__VERSION__ = "0.3.5"
+__VERSION__ = "0.4.0"
 
 def bootstrapper():
     # Create a parser
@@ -42,6 +42,7 @@ def bootstrapper():
     # Accept port param by the default value of 22, since default value of ssh port is 22
     parser_grip.add_argument('-p', dest='PORT', type=int, default=22, help='ssh port')
     parser_grip.add_argument('-k', dest='KEY', type=str, default='', help='Use a private key instead of a password.')
+    parser_grip.add_argument('-l', dest='LOCAL', type=str, default='', help='Specify a local path.')
     parser_grip.set_defaults(func=grip)
 
     # GEKKO LIST
@@ -131,6 +132,8 @@ def grip(args):
         print("Remark:           %s" % args.REMARK)
         if args.KEY != '':
             print("Private key:      %s" % args.KEY)
+        if args.LOCAL != '':
+            print("Local path:       %s" % args.LOCAL)
         svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
 
         #load connections
@@ -148,6 +151,7 @@ def grip(args):
                          'path': path,
                          'port': args.PORT,
                          'key': args.KEY,
+                         'local': args.LOCAL,
                          })
         else:
             item[0]['host'] = host
@@ -155,6 +159,7 @@ def grip(args):
             item[0]['path'] = path
             item[0]['port'] = args.PORT
             item[0]['key'] = args.KEY
+            item[0]['local'] = args.LOCAL
         with open(svrfile, 'w', encoding='UTF-8') as f:
             f.write(yaml.dump(data))
         print("\nConnection Saved.")
@@ -180,6 +185,8 @@ def list(args):
             print('-p %d ' % data['port'], end='')
         if data['key'] != '':
             print('-k %s' % data['key'], end='')
+        if data['local'] != '':
+            print('-l %s' % data['local'], end='')
         print('')
     exit(0)
 
@@ -215,14 +222,16 @@ def sense(args):
         if i['remark'] == args.REMARK:
             if i['key'] == '' and password == '':
                 password = getpass.getpass("SSH Password of %s: " % i['host'])
-            do_sense(i['user'], i['host'], i['port'], password, i['path'], i['key'])
+            do_sense(i['user'], i['host'], i['port'], password, i['path'], i['key'], i['local'])
             exit(0)
     print('Wriggling reptiles! "%s" seems not exist.' % args.REMARK)
     exit(6)
 
-def do_sense(user, host, port, password, path, key):
+def do_sense(user, host, port, password, path, key, local):
 
     # Get Ignored files
+    if local != '':
+        os.chdir(local)
     root = os.path.abspath(os.curdir)
     ignfile = os.path.join(root, ".gekkoign")
     lines = []
@@ -354,14 +363,16 @@ def run(args):
         if i['remark'] == args.REMARK:
             if i['key'] == '' and password == '':
                 password = getpass.getpass("SSH Password of %s: " % i['host'])
-            do_run(i['user'], i['host'], i['port'], password, i['path'], i['key'], fullsync)
+            do_run(i['user'], i['host'], i['port'], password, i['path'], i['key'], fullsync, i['local'])
             exit(0)
     print('Wriggling reptiles! "%s" seems not exist.' % args.REMARK)
     exit(6)
 
-def do_run(user, host, port, password, path, key, fullsync):
+def do_run(user, host, port, password, path, key, fullsync, local):
 
     # Get Ignored files
+    if local != '':
+        os.chdir(local)
     root = os.path.abspath(os.curdir)
     ignfile = os.path.join(root, ".gekkoign")
     lines = []
