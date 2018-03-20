@@ -7,14 +7,13 @@
 <p align="center">A command line tool makes SFTP sync "easy-peasy lizard squeezy".<br /></p>
   
 [![PyPI version](https://badge.fury.io/py/theGekko.svg)](https://badge.fury.io/py/theGekko)  
-[中文版説明](https://ralf.ren/1759)
 
 ## Contents  
 * [Installation](#installation)  
 * [Enable tab-complete](#enable-tab-complete)
 * [Quick start](#quick-start)
 * [Commands list](#commands)
-* [Detailed Wiki](https://github.com/CYRO4S/Gekko/wiki)
+* [Detailed Wiki (中文 / English)](https://github.com/CYRO4S/Gekko/wiki)
 
 ## Installation
 ```shell
