@@ -1,9 +1,10 @@
 <p align="center">
   <img src="https://raw.githubusercontent.com/CYRO4S/Gekko/master/assets/gekko_icon.png" width="132" height="132" alt="Gekko_LOGO">
   <img src="https://raw.githubusercontent.com/CYRO4S/Gekko/master/assets/gekko_text.png" alt="Gekko">
+  <br />
 </p>
 
-Make SFTP syncing "easy-peasy lizard squeezy".  
+<p align="center">A command line tool makes SFTP sync "easy-peasy lizard squeezy".<br /></p>
   
 [![PyPI version](https://badge.fury.io/py/theGekko.svg)](https://badge.fury.io/py/theGekko)  
 [中文版説明](https://ralf.ren/1759)
