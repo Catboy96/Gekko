@@ -4,7 +4,7 @@
   <br />
 </p>
 
-<p align="center">A command line tool makes SFTP sync "easy-peasy lizard squeezy".<br /></p>
+<p align="center">A command line tool makes SFTP sync "easy-peasy lizard-squeezy".<br /></p>
   
 [![PyPI version](https://badge.fury.io/py/theGekko.svg)](https://badge.fury.io/py/theGekko)  
 
