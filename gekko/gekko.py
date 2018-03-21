@@ -13,8 +13,11 @@ import os, re, sys, pysftp, paramiko
 import argparse
 import getpass
 import yaml
+import warnings
 
-__VERSION__ = "0.4.0"
+__VERSION__ = "1.0.0"
+
+warnings.filterwarnings("ignore")
 
 def bootstrapper():
     # Create a parser
