@@ -8,7 +8,7 @@
   
 [![PyPI version](https://badge.fury.io/py/theGekko.svg)](https://badge.fury.io/py/theGekko)  
 
-## Watch the video on YouTube
+## Watch the showcase on YouTube
 Or download it directly from [assets/gekko_showcase_wsl.mp4](https://raw.githubusercontent.com/CYRO4S/Gekko/master/assets/gekko_showcase_wsl.mp4)
 <p align="center">
   <a href=https://youtu.be/JQ5GeRyxR4I><img src="https://raw.githubusercontent.com/CYRO4S/Gekko/master/assets/gekko_showcase_placeholder.png" alt="Gekko showcase in WSL"></a>
