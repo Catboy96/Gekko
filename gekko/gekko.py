@@ -9,13 +9,17 @@
 # 7: Authentication failed
 # 8: Network error
 # 9: SFTP error
-import os, re, sys, pysftp, paramiko
+# 10: Error when establishing FTP connecion.
+from ftplib import FTP
+import os, re, sys
+import pysftp, paramiko
 import argparse
-import getpass
-import yaml
 import warnings
+import getpass
+import ftplib
+import yaml
 
-__VERSION__ = "1.0.0"
+__VERSION__ = "1.1.0"
 
 warnings.filterwarnings("ignore")
 
@@ -46,6 +50,8 @@ def bootstrapper():
     parser_grip.add_argument('-p', dest='PORT', type=int, default=22, help='ssh port')
     parser_grip.add_argument('-k', dest='KEY', type=str, default='', help='Use a private key instead of a password.')
     parser_grip.add_argument('-l', dest='LOCAL', type=str, default='', help='Specify a local path.')
+    parser_grip.add_argument('-f', action='store_true', dest='FTP', default=False,
+    help='Use FTP protocol')
     parser_grip.set_defaults(func=grip)
 
     # GEKKO LIST
@@ -125,11 +131,13 @@ def grip(args):
     if not matchobj:
         print("Invalid server string.")
     else:
+        # Print specified connection info
         user = matchobj.group(1)
         host = matchobj.group(2)
         path = matchobj.group(3)
         print("Host:             %s" % host)
-        print("SSH Port:         %s" % args.PORT)
+        if args.FTP == False:
+            print("SSH Port:         %s" % args.PORT)
         print("User:             %s" % user)
         print("Upload Directory: %s" % path)
         print("Remark:           %s" % args.REMARK)
@@ -137,9 +145,16 @@ def grip(args):
             print("Private key:      %s" % args.KEY)
         if args.LOCAL != '':
             print("Local path:       %s" % args.LOCAL)
+        if args.FTP == True:
+            print("Using FTP protocol.")
         svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
 
-        #load connections
+        # Check if using FTP
+        option_ftp = False
+        if args.FTP == True:
+            option_ftp = True
+
+        # Load connections for modification
         data = []
         if os.path.exists(svrfile):
             with open(svrfile, 'r', encoding='UTF-8') as f:
@@ -155,6 +170,7 @@ def grip(args):
                          'port': args.PORT,
                          'key': args.KEY,
                          'local': args.LOCAL,
+                         'ftp': option_ftp,
                          })
         else:
             item[0]['host'] = host
@@ -163,6 +179,7 @@ def grip(args):
             item[0]['port'] = args.PORT
             item[0]['key'] = args.KEY
             item[0]['local'] = args.LOCAL
+            item[0]['ftp'] = option_ftp
         with open(svrfile, 'w', encoding='UTF-8') as f:
             f.write(yaml.dump(data))
         print("\nConnection Saved.")
@@ -190,6 +207,8 @@ def list(args):
             print('-k %s' % data['key'], end='')
         if data['local'] != '':
             print('-l %s' % data['local'], end='')
+        if data['ftp'] == True:
+            print('-f')
         print('')
     exit(0)
 
@@ -350,6 +369,10 @@ def do_sense(user, host, port, password, path, key, local):
     print("Done.\n")
     print('%.3f MB need to upload.' % (upload_size/1024/1024))
 
+# TODO: Gekko SENSE using FTP
+def do_sense_ftp(user, host, password, path, local):
+    pass
+
 def run(args):
     svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
     if not os.path.exists(svrfile):
@@ -486,3 +509,12 @@ def do_run(user, host, port, password, path, key, fullsync, local):
     print("Disconnecting... ", end='')
     sftp.close()
     print("Done.")
+
+def do_run_ftp(user, host, password, path, fullsync, local):
+    ftp = FTP(host)
+    try:
+        ftp.login(user=user, passwd=password)
+    except:
+        print("An error occured when connecting remote host.")
+        print("Check your Internet connection and authentication information.")
+        exit(10)
