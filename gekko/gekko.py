@@ -1,106 +1,172 @@
 #!/usr/bin/env python3
-# Errors:
-# 1: Required argument not specified
-# 2: Camouflage path not found
-# 3: Invalid arguement
-# 4: Invalid server string
-# 5: No connection info saved in ~/.gekko
-# 6: Cannot find connection info with specified remark
-# 7: Authentication failed
-# 8: Network error
-# 9: SFTP error
-# 10: Error when establishing FTP connecion.
-from ftplib import FTP
-import os, re, sys
-import pysftp, paramiko
-import argparse
-import warnings
-import getpass
-import ftplib
-import yaml
 
-__VERSION__ = "1.1.0"
+import os
+import re
+import pysftp
+import paramiko
+import argparse
+import getpass
+import yaml
+import warnings
+import random
+import configparser
+
+__VERSION__ = "1.0.0"
 
 warnings.filterwarnings("ignore")
 
+
 def bootstrapper():
-    # Create a parser
     parser = argparse.ArgumentParser(description='Gekko - Makes SFTP synchronization "easy-peasy lizard squeezy"')
-    # Create sub-command parsers
     subparsers = parser.add_subparsers()
 
-    # GEKKO CAMOUFLAGE ---
-    parser_camo = subparsers.add_parser(
-        'camouflage', aliases=['camo'], help='Define a file or a directory which will be ignored'
-                     ' when syncing. This will generate \'.gekkoign\' file.')
-    # Accept path param
-    parser_camo.add_argument('path', help = 'the path of a file or directory to ignore')
-    #once camouflage command matched, goto camouflage routine
-    parser_camo.set_defaults(func=camouflage)
+    # GEKKO CAMOUFLAGE
+    parser_camo = subparsers.add_parser('camouflage', aliases=['camo'],
+                                        help='Define a file or a directory which will be ignored'
+                                             ' when syncing. This will generate \'.gekkoign\' file.')
+    parser_camo.add_argument('path', help='the path of a file or directory to ignore')
+    parser_camo.set_defaults(func=do_camouflage)
 
-    # Make sub-commands
-    # GEKKO GRIP ---
-    parser_grip = subparsers.add_parser(
-        'grip', aliases=['gp'], help='Create a host which files will be uploaded to. You can also save the host or remove it')
-    # Accept connection param
+    # GEKKO GRIP
+    parser_grip = subparsers.add_parser('grip', aliases=['gp'],
+                                        help='Create a host which files will be uploaded to. You can also save the '
+                                             'host or remove it')
     parser_grip.add_argument('connection', help='Specify the connection using user@hostname:path')
-    # Accept remark param
     parser_grip.add_argument('-s', dest='REMARK', help='The remark of connection to be created.')
-    # Accept port param by the default value of 22, since default value of ssh port is 22
     parser_grip.add_argument('-p', dest='PORT', type=int, default=22, help='ssh port')
     parser_grip.add_argument('-k', dest='KEY', type=str, default='', help='Use a private key instead of a password.')
     parser_grip.add_argument('-l', dest='LOCAL', type=str, default='', help='Specify a local path.')
-    parser_grip.add_argument('-f', action='store_true', dest='FTP', default=False,
-    help='Use FTP protocol')
-    parser_grip.set_defaults(func=grip)
+    parser_grip.set_defaults(func=do_grip)
 
     # GEKKO LIST
-    parser_list = subparsers.add_parser(
-        'list', aliases=['ls'], help='Show all the connections.')
-    parser_list.set_defaults(func=list)
+    parser_list = subparsers.add_parser('list', aliases=['ls'], help='Show all the connections.')
+    parser_list.set_defaults(func=do_list)
 
     # GEKKO REMOVE
-    parser_remove = subparsers.add_parser(
-        'remove', aliases=['rm'], help='Remove a connecion.')
+    parser_remove = subparsers.add_parser('remove', aliases=['rm'], help='Remove a connection.')
     parser_remove.add_argument('REMARK', help='Specify the connection using remark')
-    parser_remove.set_defaults(func=removeconn)
+    parser_remove.set_defaults(func=do_remove)
 
     # GEKKO RUN
-    parser_run = subparsers.add_parser(
-        'run', aliases=['rn'], help='Start the synchronization sequence.')
+    parser_run = subparsers.add_parser('run', aliases=['rn'], help='Start the synchronization sequence.')
     parser_run.add_argument('REMARK', help='Specify the connection using remark')
     parser_run.add_argument('-p', dest='PASSWORD', default='', type=str, help='Password')
-    parser_run.add_argument(
-        '-f', action='store_true', dest='FULLSYNC', default=False,
-        help='Remove all remote files and sync with local.')
+    parser_run.add_argument('-f', action='store_true', dest='FULLSYNC', default=False,
+                            help='Remove all remote files and sync with local.')
     parser_run.set_defaults(func=run)
 
     # GEKKO SENSE
-    parser_sense = subparsers.add_parser(
-        'sense', aliases=['ss'], help='Check for the changes which will taken in syncing.')
+    parser_sense = subparsers.add_parser('sense', aliases=['ss'],
+                                         help='Check for the changes which will taken in syncing.')
     parser_sense.add_argument('REMARK', help='Specify the connection using remark')
     parser_sense.add_argument('-p', dest='PASSWORD', default='', type=str, help='Password')
     parser_sense.set_defaults(func=sense)
 
-    # GEKKO VERSION ---
-    parser_ver = subparsers.add_parser(
-        'version', aliases=['ver'], help='Show the version of Gekko.')
-    parser_ver.set_defaults(func=version)
+    # GEKKO VERSION
+    parser_ver = subparsers.add_parser('version', aliases=['ver'], help='Show the version of Gekko.')
+    parser_ver.set_defaults(func=do_version)
+
+    # GEKKO MUSCLE
+    parser_muscles = subparsers.add_parser('muscles', help='???')
+    parser_muscles.set_defaults(func=do_muscles)
 
     # Parse
     args = parser.parse_args()
     try:
-        # Call sub-command routine
         args.func(args)
     except AttributeError:
-        # No arguements specified, show help.
         parser.print_help()
         exit(0)
 
-def version(args):
+
+def sense(args):
+    svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
+    if not os.path.exists(svrfile):
+        print("Gasping Geckos! No connection saved yet.")
+        exit(5)
+    with open(svrfile, 'r', encoding='UTF-8') as f:
+        data_collection = yaml.load(f)
+    if not data_collection:
+        print('Gasping Geckos! No connection saved yet.')
+        exit(5)
+    password = args.PASSWORD
+    for i in data_collection:
+        if i['remark'] == args.REMARK:
+            if i['key'] == '' and password == '':
+                password = getpass.getpass("SSH Password of %s: " % i['host'])
+            do_sense(i['user'], i['host'], i['port'], password, i['path'], i['key'], i['local'])
+            exit(0)
+    print('Wriggling reptiles! "%s" seems not exist.' % args.REMARK)
+    exit(6)
+
+
+def run(args):
+    svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
+    if not os.path.exists(svrfile):
+        print("Gasping Geckos! No connection saved yet.")
+        exit(5)
+    with open(svrfile, 'r', encoding='UTF-8') as f:
+        data_collection = yaml.load(f)
+    if not data_collection:
+        print('Gasping Geckos! No connection saved yet.')
+        exit(5)
+    password = args.PASSWORD
+    fullsync = args.FULLSYNC
+    for i in data_collection:
+        if i['remark'] == args.REMARK:
+            if i['key'] == '' and password == '':
+                password = getpass.getpass("SSH Password of %s: " % i['host'])
+            do_run(i['user'], i['host'], i['port'], password, i['path'], i['key'], fullsync, i['local'])
+            exit(0)
+    print('Wriggling reptiles! "%s" seems not exist.' % args.REMARK)
+    exit(6)
+
+
+def gekko_feels(mood, exception):
+    mood_file = os.path.join(os.path.expanduser('~'), ".gekko_mood")
+    ini = configparser.ConfigParser()
+    if not os.path.exists(mood_file):
+        ini['mood'] = {'status': 'great'}
+        ini['count'] = {'success': 0, 'failure': 0}
+        ini['last'] = {'exception': 0}
+    else:
+        ini.read(mood_file)
+    if mood == 'great':
+        ini.set('mood', 'status', 'great')
+        success_count = ini.get('count', 'success') + 1
+        ini.set('count', 'success', success_count)
+    elif mood == 'bad':
+        ini.set('mood', 'status', 'bad')
+        failure_count = ini.get('count', 'failure') + 1
+        ini.set('count', 'failure', failure_count)
+        ini.set('last', 'exception', exception)
+    with open(mood_file, 'w') as f:
+        ini.write(f)
+
+
+def do_version():
     print("Gekko %s" % __VERSION__)
 
-def camouflage(args):
+
+def do_muscles():
+    voice_lines_negative = ('Gasping geckos! ', 'Wriggling reptiles! ', 'Slithering serpents! ')
+    voice_lines_positive = ('Cool chameleons! ', 'Leaping lizards! ')
+    mood_file = os.path.join(os.path.expanduser('~'), ".gekko_mood")
+    if not os.path.exists(mood_file):
+        print(random.choice(voice_lines_negative), end='')
+        print("Haven't seen my Super Gekko Powers?")
+        print('Then try me!')
+        exit(0)
+    ini = configparser.ConfigParser()
+    ini.read(mood_file)
+    mood = ini.get('mood', 'status')
+    if mood == 'great':
+        print(random.choice(voice_lines_positive), end='')
+    elif mood == 'bad':
+        print(random.choice(voice_lines_negative), end='')
+
+
+def do_camouflage(args):
     print("Checking for %s..." % args.path, end='')
     if os.path.exists(args.path):
         print(" Exist.")
@@ -126,18 +192,17 @@ def camouflage(args):
         print("The path you specified does not exist.")
         exit(2)
 
-def grip(args):
+
+def do_grip(args):
     matchobj = re.match(r'^([a-z0-9_]{1,32})@(\S+):(\S+)$', args.connection)
     if not matchobj:
         print("Invalid server string.")
     else:
-        # Print specified connection info
         user = matchobj.group(1)
         host = matchobj.group(2)
         path = matchobj.group(3)
         print("Host:             %s" % host)
-        if args.FTP == False:
-            print("SSH Port:         %s" % args.PORT)
+        print("SSH Port:         %s" % args.PORT)
         print("User:             %s" % user)
         print("Upload Directory: %s" % path)
         print("Remark:           %s" % args.REMARK)
@@ -145,16 +210,8 @@ def grip(args):
             print("Private key:      %s" % args.KEY)
         if args.LOCAL != '':
             print("Local path:       %s" % args.LOCAL)
-        if args.FTP == True:
-            print("Using FTP protocol.")
         svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
 
-        # Check if using FTP
-        option_ftp = False
-        if args.FTP == True:
-            option_ftp = True
-
-        # Load connections for modification
         data = []
         if os.path.exists(svrfile):
             with open(svrfile, 'r', encoding='UTF-8') as f:
@@ -170,7 +227,6 @@ def grip(args):
                          'port': args.PORT,
                          'key': args.KEY,
                          'local': args.LOCAL,
-                         'ftp': option_ftp,
                          })
         else:
             item[0]['host'] = host
@@ -179,26 +235,26 @@ def grip(args):
             item[0]['port'] = args.PORT
             item[0]['key'] = args.KEY
             item[0]['local'] = args.LOCAL
-            item[0]['ftp'] = option_ftp
         with open(svrfile, 'w', encoding='UTF-8') as f:
             f.write(yaml.dump(data))
         print("\nConnection Saved.")
 
-def list(args):
+
+def do_list():
     svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
     if not os.path.exists(svrfile):
         print("Gasping Geckos! No connection saved yet.")
         exit(5)
     with open(svrfile, 'r', encoding='UTF-8') as f:
-        datas = yaml.load(f)
-    if not datas:
+        data_collection = yaml.load(f)
+    if not data_collection:
         print('Gasping Geckos! No connection saved yet.')
         exit(5)
     print('{:<20}'.format('Remarks'), end='')
     print('Connection')
     print('{:<20}'.format('-------'), end='')
     print('-------')
-    for data in datas:
+    for data in data_collection:
         print('{:<20}'.format(data['remark']), end='')
         print('%s@%s:%s ' % (data['user'], data['host'], data['path']), end='')
         if data['port'] != 22:
@@ -207,50 +263,29 @@ def list(args):
             print('-k %s' % data['key'], end='')
         if data['local'] != '':
             print('-l %s' % data['local'], end='')
-        if data['ftp'] == True:
-            print('-f')
         print('')
     exit(0)
 
-def removeconn(args):
+
+def do_remove(args):
     svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
     if not os.path.exists(svrfile):
         print("Gasping Geckos! No connection saved yet.")
         exit(5)
     with open(svrfile, 'r', encoding='UTF-8') as f:
-        datas = yaml.load(f)
-    if not datas:
+        data_collection = yaml.load(f)
+    if not data_collection:
         print('Gasping Geckos! No connection saved yet.')
         exit(5)
-    for i in datas:
+    for i in data_collection:
         if i['remark'] == args.REMARK:
-            datas.remove(i)
+            data_collection.remove(i)
     with open(svrfile, 'w', encoding='UTF-8') as f:
-        f.write(yaml.dump(datas))
+        f.write(yaml.dump(data_collection))
     print('"%s" removed.' % args.REMARK)
 
-def sense(args):
-    svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
-    if not os.path.exists(svrfile):
-        print("Gasping Geckos! No connection saved yet.")
-        exit(5)
-    with open(svrfile, 'r', encoding='UTF-8') as f:
-        datas = yaml.load(f)
-    if not datas:
-        print('Gasping Geckos! No connection saved yet.')
-        exit(5)
-    password = args.PASSWORD
-    for i in datas:
-        if i['remark'] == args.REMARK:
-            if i['key'] == '' and password == '':
-                password = getpass.getpass("SSH Password of %s: " % i['host'])
-            do_sense(i['user'], i['host'], i['port'], password, i['path'], i['key'], i['local'])
-            exit(0)
-    print('Wriggling reptiles! "%s" seems not exist.' % args.REMARK)
-    exit(6)
 
 def do_sense(user, host, port, password, path, key, local):
-
     # Get Ignored files
     if local != '':
         os.chdir(local)
@@ -265,7 +300,7 @@ def do_sense(user, host, port, password, path, key, local):
     except FileNotFoundError:
         lines = []
 
-    # Establish connection
+    # Establish SFTP connection
     try:
         cnopts = pysftp.CnOpts()
         cnopts.hostkeys = None
@@ -276,7 +311,7 @@ def do_sense(user, host, port, password, path, key, local):
             sftp = pysftp.Connection(host, username=user, port=int(port), password=password, cnopts=cnopts)
         print("Connected.")
     except pysftp.exceptions.ConnectionException:
-        print("\n\nAn error occured when establishing connection.\nCheck for Internet connection.")
+        print("\n\nAn error occurred when establishing connection.\nCheck for Internet connection.")
         exit(8)
     except paramiko.ssh_exception.AuthenticationException:
         print("\n\nAuthentication failed.")
@@ -289,7 +324,8 @@ def do_sense(user, host, port, password, path, key, local):
         print("Change directory to %s... Done." % path)
         sftp.cd(path)
     else:
-        # Well, just print every file not ignored.
+        # Remote directory do not exist
+        # Print every file not marked as 'ignored'
         total_size = 0
         print("Not exist.")
         print("Changes will be taken:")
@@ -346,56 +382,33 @@ def do_sense(user, host, port, password, path, key, local):
                 # 'rel'   will be local file relative path.
                 # 'rpath' will be remote file absolute path.
                 rpath = os.path.join(path, rel)
-                # Try getting remote file info.
-                try:
-                    fr = sftp.lstat(rpath)
-                    fl = os.stat(rel)
-                    # If remote file's modification time & size equals to the
-                    # local file, means the file is not changed.
-                    if fr.st_size == fl.st_size and int(fr.st_mtime) == int(fl.st_mtime):
-                        pass
-                    else:
-                        # Upload.
-                        upload_size += os.path.getsize(rel)
-                        print("* %s" % rpath)
-                except:
-                    # Remote file doesn't exist. Needs to upload.
+
+                # If remote file does not exists
+                if not sftp.exists(rpath):
                     upload_size += os.path.getsize(rel)
                     print("+ %s" % rpath)
+                    continue
 
-    # Close connection
+                # Gather information of remote file
+                fr = sftp.lstat(rpath)
+                fl = os.stat(rel)
+
+                # If remote file's modification time & size is the same as the
+                # local one, stands the file is unchanged.
+                if fr.st_size == fl.st_size and int(fr.st_mtime) == int(fl.st_mtime):
+                    pass
+                else:
+                    # Upload.
+                    upload_size += os.path.getsize(rel)
+
+    # Close the connection
     print("Disconnecting... ", end='')
     sftp.close()
     print("Done.\n")
     print('%.3f MB need to upload.' % (upload_size/1024/1024))
 
-# TODO: Gekko SENSE using FTP
-def do_sense_ftp(user, host, password, path, local):
-    pass
-
-def run(args):
-    svrfile = os.path.join(os.path.expanduser('~'), ".gekko")
-    if not os.path.exists(svrfile):
-        print("Gasping Geckos! No connection saved yet.")
-        exit(5)
-    with open(svrfile, 'r', encoding='UTF-8') as f:
-        datas = yaml.load(f)
-    if not datas:
-        print('Gasping Geckos! No connection saved yet.')
-        exit(5)
-    password = args.PASSWORD
-    fullsync = args.FULLSYNC
-    for i in datas:
-        if i['remark'] == args.REMARK:
-            if i['key'] == '' and password == '':
-                password = getpass.getpass("SSH Password of %s: " % i['host'])
-            do_run(i['user'], i['host'], i['port'], password, i['path'], i['key'], fullsync, i['local'])
-            exit(0)
-    print('Wriggling reptiles! "%s" seems not exist.' % args.REMARK)
-    exit(6)
 
 def do_run(user, host, port, password, path, key, fullsync, local):
-
     # Get Ignored files
     if local != '':
         os.chdir(local)
@@ -422,7 +435,7 @@ def do_run(user, host, port, password, path, key, fullsync, local):
             sftp = pysftp.Connection(host, username=user, port=int(port), password=password, cnopts=cnopts)
         print("Connected.")
     except pysftp.exceptions.ConnectionException:
-        print("\n\nAn error occured when establishing connection.\nCheck for Internet connection.")
+        print("\n\nAn error occurred when establishing connection.\nCheck for Internet connection.")
         exit(8)
     except paramiko.ssh_exception.AuthenticationException:
         print("\n\nAuthentication failed.")
@@ -432,7 +445,7 @@ def do_run(user, host, port, password, path, key, fullsync, local):
     print("Checking for %s... " % path, end='')
     if sftp.exists(path):
         print("Exist.")
-        if fullsync == True:
+        if fullsync:
             try:
                 print("Removing %s... " % path, end='')
                 sftp.execute("rm -rf %s" % path)
@@ -440,8 +453,9 @@ def do_run(user, host, port, password, path, key, fullsync, local):
                 print("Make directory at %s... " % path, end='')
                 sftp.makedirs(path)
                 print("Done.")
-            except:
+            except Exception as e:
                 print("\nSFTP Error.")
+                print(e)
                 exit(9)
         else:
             print("Change directory to %s... Done." % path)
@@ -475,46 +489,41 @@ def do_run(user, host, port, password, path, key, fullsync, local):
                 # 'rel'   will be local file relative path.
                 # 'rpath' will be remote file absolute path.
                 rpath = os.path.join(path, rel)
-                # Try getting remote file info.
-                try:
-                    # Remote file exists
-                    fr = sftp.lstat(rpath)
-                    fl = os.stat(rel)
-                    # If remote file's modification time & size equals to the
-                    # local file, then skip it.
-                    if fr.st_size == fl.st_size and int(fr.st_mtime) == int(fl.st_mtime):
-                        print("Skipped:   %s" % rel)
-                    else:
-                        # Replace the remote one.
-                        print("Uploading: %s... " % rel, end='')
-                        try:
-                            sftp.put(rel, remotepath=rpath, preserve_mtime=True)
-                            print("Done.")
-                        except:
-                            print('FAILED.')
-                except:
-                    # Remote file does not exist, upload directly.
+
+                # If remote file does not exists
+                if not sftp.exists(rpath):
+                    print("Uploading: %s... " % rel, end='')
+                    sftp.makedirs(os.path.dirname(rpath))
+                    sftp.put(rel, remotepath=rpath, preserve_mtime=True)
+                    print("Done.")
+                    continue
+
+                # Remote file exists
+                # Gather information of remote file.
+                fr = sftp.lstat(rpath)
+                fl = os.stat(rel)
+
+                # If remote file's modification time & size is the same as the
+                # local one, stands the file is unchanged.
+                if fr.st_size == fl.st_size and int(fr.st_mtime) == int(fl.st_mtime):
+                    print("Skipped:   %s" % rel)
+                else:
+                    # Replace the remote one.
                     print("Uploading: %s... " % rel, end='')
                     try:
                         sftp.put(rel, remotepath=rpath, preserve_mtime=True)
                         print("Done.")
-                    except FileNotFoundError:
-                        # Build remote file's path if nessesary.
-                        sftp.makedirs(os.path.dirname(rpath))
-                        sftp.put(rel, remotepath=rpath, preserve_mtime=True)
-                        print("Done.")
-
+                    except Exception as e:
+                        print('FAILED.')
+                        print(e)
 
     # Close connection
     print("Disconnecting... ", end='')
     sftp.close()
     print("Done.")
 
-def do_run_ftp(user, host, password, path, fullsync, local):
-    ftp = FTP(host)
-    try:
-        ftp.login(user=user, passwd=password)
-    except:
-        print("An error occured when connecting remote host.")
-        print("Check your Internet connection and authentication information.")
-        exit(10)
+
+
+
+if __name__ == '__main__':
+    bootstrapper()
